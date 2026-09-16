@@ -15,7 +15,6 @@ require $root . '/src/GuestList.php';
 require $root . '/src/Throttle.php';
 
 $config = require $root . '/config/settings.php';
-$env    = env_load($root . '/.env.local');
 
 date_default_timezone_set('Europe/Paris');
 mb_internal_encoding('UTF-8');
@@ -167,7 +166,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     $rsvp->rememberCookie($data['token']);
 
-    $mailer = new Mailer((string) ($env['MAILER_DSN'] ?? getenv('MAILER_DSN') ?: ''));
+    $mailer = new Mailer(env_get('MAILER_DSN'));
     $mailSent = $rsvp->notify($data, $config['mail'], $mailer, $t);
     if (!$mailSent) {
         error_log('[RSVP] Notification e-mail non envoyée (' . $data['token'] . ') : ' . implode(' | ', $mailer->errors()));

@@ -59,10 +59,12 @@ foreach ($dates as $code => $value) {
         <?php endforeach; ?>
     </ul>
 
-    <p class="summary__contact">
-        <?php $contactMail = $config['mail']['to'][1] ?? $config['mail']['to'][0]; ?>
-        <span data-i18n="summary.contact" data-i18n-args="<?= e($contactMail) ?>"><?= e($current->get('summary.contact', $contactMail)) ?></span>
-    </p>
+    <?php $contactMail = $data['contact'] ?? ($config['mail']['to'][1] ?? ($config['mail']['to'][0] ?? '')); ?>
+    <?php if ($contactMail !== ''): ?>
+        <p class="summary__contact">
+            <span data-i18n="summary.contact" data-i18n-args="<?= e($contactMail) ?>"><?= e($current->get('summary.contact', $contactMail)) ?></span>
+        </p>
+    <?php endif; ?>
 
     <button type="button" class="btn btn--ghost" data-print data-i18n="summary.print"><?= e($current->get('summary.print')) ?></button>
 </div>

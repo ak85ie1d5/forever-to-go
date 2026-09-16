@@ -138,7 +138,7 @@ HTML;
     }
 }
 
-$contactMail = $config['mail']['to'][1] ?? $config['mail']['to'][0];
+$contactMail = $config['mail']['to'][1] ?? ($config['mail']['to'][0] ?? '');
 ?>
 <section class="section section--rsvp" id="rsvp" data-section="rsvp">
     <div class="section__head reveal">
@@ -167,8 +167,10 @@ $contactMail = $config['mail']['to'][1] ?? $config['mail']['to'][0];
                     <p class="form__error" data-i18n="rsvp.error_invite"><?= e($t->get('rsvp.error_invite')) ?></p>
                 <?php endif; ?>
                 <p class="gate__text" data-i18n="rsvp.gate_text"><?= e($t->get('rsvp.gate_text')) ?></p>
-                <p class="gate__help" data-i18n="rsvp.gate_help" data-i18n-args="<?= e($contactMail) ?>"><?= e($t->get('rsvp.gate_help', $contactMail)) ?></p>
-                <a class="btn btn--ghost" href="mailto:<?= e($contactMail) ?>"><?= e($contactMail) ?></a>
+                <?php if ($contactMail !== ''): ?>
+                    <p class="gate__help" data-i18n="rsvp.gate_help" data-i18n-args="<?= e($contactMail) ?>"><?= e($t->get('rsvp.gate_help', $contactMail)) ?></p>
+                    <a class="btn btn--ghost" href="mailto:<?= e($contactMail) ?>"><?= e($contactMail) ?></a>
+                <?php endif; ?>
             </div>
 
         <?php else: ?>

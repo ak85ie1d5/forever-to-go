@@ -26,6 +26,35 @@ function env_load(string $file): array
     return $vars;
 }
 
+/**
+ * Valeur d'une variable de configuration : .env.local d'abord (configuration
+ * explicite du projet), puis l'environnement du système (Docker, systemd, shell).
+ */
+function env_get(string $key, string $default = ''): string
+{
+    static $local = null;
+    if ($local === null) {
+        $local = env_load(dirname(__DIR__) . '/.env.local');
+    }
+    $value = trim((string) ($local[$key] ?? ''));
+    if ($value === '') {
+        $value = trim((string) (getenv($key) ?: ''));
+    }
+
+    return $value !== '' ? $value : $default;
+}
+
+/** Liste d'adresses e-mail valides, séparées par des virgules ou des points-virgules. */
+function env_emails(string $key): array
+{
+    $addresses = preg_split('/[;,]/', env_get($key)) ?: [];
+
+    return array_values(array_filter(
+        array_map('trim', $addresses),
+        static fn(string $address) => filter_var($address, FILTER_VALIDATE_EMAIL) !== false
+    ));
+}
+
 /** Traductions : accès par chemin pointé, ex. t('rsvp.title'). */
 final class I18n
 {

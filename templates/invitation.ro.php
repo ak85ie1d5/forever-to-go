@@ -4,6 +4,11 @@
  * Mêmes variables que templates/invitation.fr.php.
  */
 
+$contactEsc  = htmlspecialchars($contact, ENT_QUOTES, 'UTF-8');
+$contactHtml = $contact !== ''
+    ? '<br>Aveți o întrebare? <a href="mailto:' . $contactEsc . '" style="color:#B08D57;">' . $contactEsc . '</a>'
+    : '';
+$contactText = $contact !== '' ? "\nAveți o întrebare? " . $contact : '';
 $prenom  = htmlspecialchars($guest['firstname'], ENT_QUOTES, 'UTF-8');
 $url     = htmlspecialchars($link, ENT_QUOTES, 'UTF-8');
 $siteUrl = htmlspecialchars($site, ENT_QUOTES, 'UTF-8');
@@ -73,8 +78,7 @@ $html = <<<HTML
         <td style="height:1px;background:#EADFCB;font-size:0;line-height:0;">&nbsp;</td>
       </tr></table>
       <p style="margin:16px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:12px;color:#8C857A;">
-        <a href="{$siteUrl}" style="color:#B08D57;text-decoration:none;">{$siteUrl}</a><br>
-        Aveți o întrebare? <a href="mailto:{$contact}" style="color:#B08D57;">{$contact}</a>
+        <a href="{$siteUrl}" style="color:#B08D57;text-decoration:none;">{$siteUrl}</a>{$contactHtml}
       </p>
     </td></tr>
   </table>
@@ -105,8 +109,7 @@ Vă rugăm să ne răspundeți până pe {$deadline}.
 Abia așteptăm să vă avem alături,
 Julia & Jérémy
 
-{$site}
-Aveți o întrebare? {$contact}
+{$site}{$contactText}
 TEXT;
 
 return ['subject' => $subject, 'html' => $html, 'text' => $text];

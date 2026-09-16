@@ -28,19 +28,17 @@ $token   = $argv[2] ?? null;   // facultatif : restreint à un seul invité
 
 /**
  * Adresse publique du site, dans cet ordre :
- *   1. variable d'environnement HOSTNAME (export shell, .env Docker, systemd Environment=) ;
+ *   1. HOSTNAME dans .env.local, puis dans l'environnement (Docker, systemd, shell) ;
  *   2. nom d'hôte du système via gethostname() — le seul disponible sous cron ou systemd,
- *      où HOSTNAME n'est pas exporté ;
- *   3. URL=... dans .env.local, si le nom d'hôte de la machine n'est pas celui du site.
+ *      où HOSTNAME n'est pas exporté.
  *
  * $strict interdit un hôte inutilisable dans un e-mail (id de conteneur, localhost…).
  */
 function site_url(string $root, bool $strict = false): string
 {
     $candidates = [
-        (string) (getenv('HOSTNAME') ?: ''),
-        (string) (gethostname() ?: ''),
-        (string) (env_load($root . '/.env.local')['URL'] ?? ''),
+        env_get('HOSTNAME'),          // .env.local, puis variable d'environnement
+        (string) (gethostname() ?: ''), // nom de machine : seul disponible sous cron/systemd
     ];
 
     $url = '';
@@ -53,7 +51,7 @@ function site_url(string $root, bool $strict = false): string
     }
 
     if ($url === '') {
-        fwrite(STDERR, "Adresse du site inconnue.\n  → définissez le nom d'hôte de la machine, ou URL=https://... dans .env.local\n");
+        fwrite(STDERR, "Adresse du site inconnue.\n  → renseignez HOSTNAME=mariage.votre-domaine.fr dans .env.local\n");
         exit(1);
     }
     if (!preg_match('~^https?://~i', $url)) {
@@ -70,7 +68,7 @@ function site_url(string $root, bool $strict = false): string
     if (!$usable) {
         $message = "L'adresse du site n'est pas publique : $url\n"
             . "  → sur le serveur : hostnamectl set-hostname mariage.votre-domaine.fr\n"
-            . "  → ou renseignez URL=https://mariage.votre-domaine.fr dans .env.local\n";
+            . "  → ou renseignez HOSTNAME=mariage.votre-domaine.fr dans .env.local\n";
         if ($strict) {
             fwrite(STDERR, $message);
             exit(1);
@@ -95,7 +93,7 @@ function invitation(array $guest, string $site, array $config, string $root): ar
 
     $translator = new I18n(require $root . '/config/lang/' . $locale . '.php', $locale);
     $deadline   = $translator->date(new DateTimeImmutable($config['rsvp_deadline']), false);
-    $contact    = $config['mail']['to'][1] ?? $config['mail']['to'][0];
+    $contact    = $config['mail']['to'][1] ?? ($config['mail']['to'][0] ?? '');
 
     $mail = (static function (array $guest, string $link, string $site, string $deadline, string $contact, string $template): array {
         return require $template;
@@ -217,7 +215,7 @@ switch ($command) {
         $site = site_url($root, true); // hôte public obligatoire : un envoi ne se rattrape pas
         echo "Site : $site\n\n";
 
-        $mailer = new Mailer((string) (env_load($root . '/.env.local')['MAILER_DSN'] ?? ''));
+        $mailer = new Mailer(env_get('MAILER_DSN'));
         $sent   = 0;
         $skipped = [];
 
