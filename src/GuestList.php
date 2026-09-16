@@ -8,12 +8,13 @@
  *   jeton   (obligatoire) — identifiant du lien personnel, ex. ?i=a7f3k2qd
  *   prenom  (obligatoire)
  *   nom     (obligatoire)
+ *   email   (facultatif)  — pré-remplit le champ « votre e-mail » du formulaire
  *   groupe  (facultatif)  — regroupe un foyer : propose les proches à ajouter
  *   langue  (facultatif)  — fr ou ro : langue d'ouverture du site pour cet invité
  */
 final class GuestList
 {
-    /** @var array<string, array{token:string,firstname:string,lastname:string,group:string,locale:string}> */
+    /** @var array<string, array{token:string,firstname:string,lastname:string,email:string,group:string,locale:string}> */
     private array $byToken = [];
     /** @var array<string, string> clé normalisée du nom => jeton */
     private array $byName = [];
@@ -22,6 +23,7 @@ final class GuestList
         'token'     => ['jeton', 'token', 'cle', 'cléf', 'clef', 'code', 'id'],
         'firstname' => ['prenom', 'prénom', 'firstname', 'first_name', 'first'],
         'lastname'  => ['nom', 'lastname', 'last_name', 'last', 'famille'],
+        'email'     => ['email', 'mail', 'courriel', 'adresse_mail', 'e_mail'],
         'group'     => ['groupe', 'group', 'foyer', 'famille_id', 'household'],
         'locale'    => ['langue', 'locale', 'lang', 'language'],
     ];
@@ -74,6 +76,7 @@ final class GuestList
                 'token'     => $token,
                 'firstname' => trim((string) ($row[$map['firstname']] ?? '')),
                 'lastname'  => trim((string) ($row[$map['lastname']] ?? '')),
+                'email'     => isset($map['email']) ? trim((string) ($row[$map['email']] ?? '')) : '',
                 'group'     => isset($map['group']) ? trim((string) ($row[$map['group']] ?? '')) : '',
                 'locale'    => isset($map['locale']) ? strtolower(trim((string) ($row[$map['locale']] ?? ''))) : '',
             ];

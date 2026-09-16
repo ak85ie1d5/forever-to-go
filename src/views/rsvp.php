@@ -187,6 +187,7 @@ $contactMail = $config['mail']['to'][1] ?? $config['mail']['to'][0];
                 <div class="field field--full">
                     <label for="contact-email" data-i18n="rsvp.email"><?= e($t->get('rsvp.email')) ?></label>
                     <input type="email" id="contact-email" name="email" maxlength="120" autocomplete="email"
+                           value="<?= e(filter_var($invite['email'] ?? '', FILTER_VALIDATE_EMAIL) ?: '') ?>"
                            placeholder="<?= e($t->get('rsvp.email_ph')) ?>" data-i18n-attr="placeholder:rsvp.email_ph">
                 </div>
 
