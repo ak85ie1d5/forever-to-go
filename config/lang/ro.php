@@ -113,6 +113,7 @@ return [
         'error_unknown'   => '%s nu figurează pe lista invitaților. Verificați ortografia sau scrieți-ne.',
         'error_already'   => '%s și-a confirmat deja prezența.',
         'error_duplicate' => '%s apare deja în răspunsul dumneavoastră.',
+        'error_throttle'  => 'Prea multe încercări de pe acest dispozitiv. Reîncercați peste o oră sau scrieți-ne.',
         'error_invite'    => 'Acest link de invitație nu este valid.',
         'no_child'    => 'Adult',
         'child'       => 'Copil',

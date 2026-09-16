@@ -2,25 +2,79 @@
 declare(strict_types=1);
 
 /**
- * Utilitaire de gestion de la liste des invités (à lancer dans le conteneur PHP) :
+ * Gestion de la liste des invités (à lancer dans le conteneur PHP).
  *
- *   php bin/invites.php jetons              génère les jetons manquants dans le CSV
- *   php bin/invites.php liens [URL]         affiche le lien personnel de chaque invité
- *   php bin/invites.php etat                qui a répondu, qui n'a pas encore répondu
+ *   php bin/invites.php jetons            génère les jetons manquants dans le CSV
+ *   php bin/invites.php liens             affiche le lien personnel de chaque invité
+ *   php bin/invites.php emails [jeton]    prépare les invitations (aperçu .html + .eml)
+ *   php bin/invites.php envoyer [jeton]   envoie les invitations — toutes, ou une seule
+ *   php bin/invites.php etat              qui a répondu, qui n'a pas encore répondu
  *
- * Exemple : docker compose exec php php bin/invites.php liens https://mariage.exemple.fr
+ * L'adresse du site est lue dans .env.local (URL=...).
+ * Exemple : docker compose exec php php bin/invites.php envoyer
  */
 
 $root = dirname(__DIR__);
 require $root . '/src/helpers.php';
 require $root . '/src/Rsvp.php';
 require $root . '/src/GuestList.php';
+require $root . '/src/Mailer.php';
 
 $config  = require $root . '/config/settings.php';
 $csv     = $config['guest_list'];
 $command = $argv[1] ?? 'etat';
+$token   = $argv[2] ?? null;   // facultatif : restreint à un seul invité
 
-/** Relit le CSV brut (en-tête + lignes) en conservant le séparateur. */
+/** Adresse publique du site, depuis .env.local. */
+function site_url(string $root): string
+{
+    $url = rtrim((string) (env_load($root . '/.env.local')['URL'] ?? ''), '/');
+    if ($url === '') {
+        fwrite(STDERR, "Adresse du site inconnue.\n  → renseignez URL=https://votre-domaine.fr dans .env.local\n");
+        exit(1);
+    }
+
+    return $url;
+}
+
+/** Message d'invitation d'un invité : sujet, html, texte, lien. */
+function invitation(array $guest, string $site, array $config, string $root): array
+{
+    $locale = isset($config['locales'][$guest['locale']]) ? $guest['locale'] : $config['default_locale'];
+    $link   = $site . '/?i=' . rawurlencode($guest['token']) . '&lang=' . $locale;
+
+    $template = $root . '/templates/invitation.' . $locale . '.php';
+    if (!is_file($template)) {
+        fwrite(STDERR, "Gabarit manquant : $template\n");
+        exit(1);
+    }
+
+    $translator = new I18n(require $root . '/config/lang/' . $locale . '.php', $locale);
+    $deadline   = $translator->date(new DateTimeImmutable($config['rsvp_deadline']), false);
+    $contact    = $config['mail']['to'][1] ?? $config['mail']['to'][0];
+
+    $mail = (static function (array $guest, string $link, string $site, string $deadline, string $contact, string $template): array {
+        return require $template;
+    })($guest, $link, $site, $deadline, $contact, $template);
+
+    return $mail + ['link' => $link, 'locale' => $locale, 'contact' => $contact];
+}
+
+/** Les invités concernés : tous, ou celui dont le jeton est passé en paramètre. */
+function selection(GuestList $list, ?string $token): array
+{
+    if ($token === null) {
+        return $list->all();
+    }
+    $guest = $list->findByToken($token);
+    if ($guest === null) {
+        fwrite(STDERR, "Jeton inconnu : $token\n");
+        exit(1);
+    }
+
+    return [$guest];
+}
+
 function read_csv(string $file): array
 {
     if (!is_readable($file)) {
@@ -50,7 +104,6 @@ function column(array $header, array $names): ?int
 switch ($command) {
     // -----------------------------------------------------------------------
     case 'jetons':
-    case 'tokens':
         [$header, $rows, $sep] = read_csv($csv);
         $tokenAt = column($header, ['jeton', 'token', 'code', 'id']);
         if ($tokenAt === null) {
@@ -60,7 +113,7 @@ switch ($command) {
         $added = 0;
         foreach ($rows as $index => $row) {
             if (trim((string) ($row[$tokenAt] ?? '')) === '' && trim(implode('', $row)) !== '') {
-                $rows[$index][$tokenAt] = substr(bin2hex(random_bytes(8)), 0, 8);
+                $rows[$index][$tokenAt] = substr(bin2hex(random_bytes(8)), 0, 12);
                 $added++;
             }
         }
@@ -77,17 +130,83 @@ switch ($command) {
 
     // -----------------------------------------------------------------------
     case 'liens':
-    case 'links':
-        $base = rtrim($argv[2] ?? (string) (env_load($root . '/.env.local')['URL'] ?? 'https://exemple.fr'), '/');
-        $list = new GuestList($csv);
-        foreach ($list->all() as $guest) {
-            printf("%-28s %s/?i=%s\n", trim($guest['firstname'] . ' ' . $guest['lastname']), $base, $guest['token']);
+        $site = site_url($root);
+        foreach (selection(new GuestList($csv), $token) as $guest) {
+            printf("%-28s %s\n", trim($guest['firstname'] . ' ' . $guest['lastname']), invitation($guest, $site, $config, $root)['link']);
+        }
+        break;
+
+    // -----------------------------------------------------------------------
+    case 'emails':
+        $site   = site_url($root);
+        $outDir = dirname($config['storage_dir']) . '/invitations';
+        if (!is_dir($outDir) && !@mkdir($outDir, 0775, true)) {
+            fwrite(STDERR, "Impossible de créer $outDir\n");
+            exit(1);
+        }
+
+        $rows = [['email', 'prenom', 'nom', 'langue', 'sujet', 'lien']];
+        $done = 0;
+        foreach (selection(new GuestList($csv), $token) as $guest) {
+            $mail = invitation($guest, $site, $config, $root);
+            file_put_contents($outDir . '/' . $guest['token'] . '.html', $mail['html']);
+            if (filter_var($guest['email'], FILTER_VALIDATE_EMAIL)) {
+                file_put_contents(
+                    $outDir . '/' . $guest['token'] . '.eml',
+                    Mailer::rawMessage([$guest['email']], $mail['subject'], $mail['html'], $mail['text'], $config['mail']['from'], $config['mail']['from_name'], $mail['contact'])
+                );
+            }
+            $rows[] = [$guest['email'], $guest['firstname'], $guest['lastname'], $mail['locale'], $mail['subject'], $mail['link']];
+            $done++;
+        }
+
+        $handle = fopen($outDir . '/publipostage.csv', 'w');
+        foreach ($rows as $row) {
+            fputcsv($handle, $row, ';');
+        }
+        fclose($handle);
+        echo "$done invitation(s) préparée(s) dans $outDir\n";
+        break;
+
+    // -----------------------------------------------------------------------
+    case 'envoyer':
+        $site = site_url($root);
+
+        // Garde-fou : des liens en localhost dans une invitation, c'est irrattrapable.
+        $host = (string) parse_url($site, PHP_URL_HOST);
+        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true) || str_ends_with($host, '.local')) {
+            fwrite(STDERR, "L'adresse du site est locale ($site) : les invités auraient un lien inutilisable.\n  → renseignez le vrai domaine dans .env.local avant d'envoyer\n");
+            exit(1);
+        }
+
+        $mailer = new Mailer((string) (env_load($root . '/.env.local')['MAILER_DSN'] ?? ''));
+        $sent   = 0;
+        $skipped = [];
+
+        foreach (selection(new GuestList($csv), $token) as $guest) {
+            $name = trim($guest['firstname'] . ' ' . $guest['lastname']);
+            if (!filter_var($guest['email'], FILTER_VALIDATE_EMAIL)) {
+                $skipped[] = $name;
+                continue;
+            }
+            $mail = invitation($guest, $site, $config, $root);
+            $ok   = $mailer->send([$guest['email']], $mail['subject'], $mail['html'], $mail['text'], $config['mail']['from'], $config['mail']['from_name'], $mail['contact']);
+            printf("%-28s %-30s %s\n", $name, $guest['email'], $ok ? 'envoyé' : 'ÉCHEC');
+            $sent += $ok ? 1 : 0;
+            usleep(300000);
+        }
+
+        echo "\n$sent invitation(s) envoyée(s).\n";
+        if ($skipped !== []) {
+            echo 'Sans adresse e-mail : ' . implode(', ', $skipped) . "\n";
+        }
+        if ($mailer->errors() !== []) {
+            echo 'Erreurs : ' . implode(' | ', $mailer->errors()) . "\n";
         }
         break;
 
     // -----------------------------------------------------------------------
     case 'etat':
-    case 'status':
     default:
         $list = new GuestList($csv);
         $rsvp = new Rsvp($config['storage_dir']);
@@ -112,7 +231,7 @@ switch ($command) {
             }
             $yes[] = sprintf('%-28s %s  (%s)', $name, substr((string) $answer['created_at'], 0, 10), $detail);
         }
-        echo "Confirmés (" . count($yes) . ") :\n";
+        echo 'Confirmés (' . count($yes) . ") :\n";
         echo $yes === [] ? "  —\n" : '  ' . implode("\n  ", $yes) . "\n";
         echo "\nSans réponse (" . count($no) . ") :\n";
         echo $no === [] ? "  —\n" : '  ' . implode("\n  ", $no) . "\n";

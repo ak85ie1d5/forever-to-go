@@ -113,6 +113,7 @@ return [
         'error_unknown'   => '%s ne figure pas dans la liste des invités. Vérifiez l’orthographe ou écrivez-nous.',
         'error_already'   => '%s a déjà confirmé sa présence.',
         'error_duplicate' => '%s figure déjà dans votre réponse.',
+        'error_throttle'  => 'Trop de tentatives depuis cet appareil. Réessayez dans une heure, ou écrivez-nous.',
         'error_invite'    => 'Ce lien d’invitation n’est pas valide.',
         'no_child'    => 'Adulte',
         'child'       => 'Enfant',

@@ -54,6 +54,26 @@ final class Mailer
             return false;
         }
 
+        [$headers, $body] = self::compose($to, $subject, $html, $text, $from, $fromName, $replyTo);
+
+        if ($this->dsn['scheme'] === 'smtp' || $this->dsn['scheme'] === 'smtps') {
+            if ($this->sendSmtp($to, $headers, $body, $from)) {
+                return true;
+            }
+        }
+
+        return $this->sendNative($to, $headers, $body);
+    }
+
+    /**
+     * Assemble un message MIME multipart/alternative.
+     * Partagé par l'envoi SMTP et par la génération de fichiers .eml (bin/invites.php).
+     *
+     * @param string[] $to
+     * @return array{0: array<string, string>, 1: string} [en-têtes, corps]
+     */
+    public static function compose(array $to, string $subject, string $html, string $text, string $from, string $fromName = '', ?string $replyTo = null): array
+    {
         $boundary = 'b' . bin2hex(random_bytes(12));
         $headers  = [
             'From'         => self::formatAddress($from, $fromName),
@@ -78,13 +98,19 @@ final class Mailer
             . chunk_split(base64_encode($html), 76, "\r\n")
             . "\r\n--$boundary--\r\n";
 
-        if ($this->dsn['scheme'] === 'smtp' || $this->dsn['scheme'] === 'smtps') {
-            if ($this->sendSmtp($to, $headers, $body, $from)) {
-                return true;
-            }
+        return [$headers, $body];
+    }
+
+    /** Message complet (en-têtes + corps), prêt à être écrit dans un fichier .eml. */
+    public static function rawMessage(array $to, string $subject, string $html, string $text, string $from, string $fromName = '', ?string $replyTo = null): string
+    {
+        [$headers, $body] = self::compose($to, $subject, $html, $text, $from, $fromName, $replyTo);
+        $raw = '';
+        foreach ($headers as $name => $value) {
+            $raw .= "$name: $value\r\n";
         }
 
-        return $this->sendNative($to, $headers, $body);
+        return $raw . "\r\n" . $body;
     }
 
     private function sendNative(array $to, array $headers, string $body): bool

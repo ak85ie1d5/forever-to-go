@@ -161,7 +161,9 @@ $contactMail = $config['mail']['to'][1] ?? $config['mail']['to'][0];
                     </svg>
                 </div>
                 <h3 class="gate__title" data-i18n="rsvp.gate_title"><?= e($t->get('rsvp.gate_title')) ?></h3>
-                <?php if (!empty($invalidInvite)): ?>
+                <?php if (!empty($tooManyTries)): ?>
+                    <p class="form__error" data-i18n="rsvp.error_throttle"><?= e($t->get('rsvp.error_throttle')) ?></p>
+                <?php elseif (!empty($invalidInvite)): ?>
                     <p class="form__error" data-i18n="rsvp.error_invite"><?= e($t->get('rsvp.error_invite')) ?></p>
                 <?php endif; ?>
                 <p class="gate__text" data-i18n="rsvp.gate_text"><?= e($t->get('rsvp.gate_text')) ?></p>

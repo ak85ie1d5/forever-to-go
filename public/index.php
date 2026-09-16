@@ -12,6 +12,7 @@ require $root . '/src/helpers.php';
 require $root . '/src/Mailer.php';
 require $root . '/src/Rsvp.php';
 require $root . '/src/GuestList.php';
+require $root . '/src/Throttle.php';
 
 $config = require $root . '/config/settings.php';
 $env    = env_load($root . '/.env.local');
@@ -23,9 +24,20 @@ mb_internal_encoding('UTF-8');
 // Invitation : l'accès au formulaire passe obligatoirement par un jeton (?i=...)
 // ---------------------------------------------------------------------------
 $guestList      = new GuestList($config['guest_list']);
+$throttle       = new Throttle($config['storage_dir'] . '/.throttle');
+$clientKey      = (string) ($_SERVER['REMOTE_ADDR'] ?? 'inconnu');
+$tooManyTries   = $throttle->blocked($clientKey);
+
 $requestedToken = isset($_GET['i']) ? (string) $_GET['i'] : null;   // lien explicitement fourni
-$invite         = $guestList->findByToken($requestedToken ?? (string) ($_COOKIE['invite'] ?? ''));
+$suppliedToken  = $requestedToken ?? (string) ($_COOKIE['invite'] ?? '');
+$invite         = $tooManyTries ? null : $guestList->findByToken($suppliedToken);
 $invalidInvite  = $requestedToken !== null && $invite === null;
+
+// Tout jeton fourni et non reconnu compte comme un essai — qu'il vienne de l'URL
+// ou du cookie, sinon l'énumération se ferait simplement par l'autre chemin.
+if ($suppliedToken !== '' && $invite === null && !$tooManyTries) {
+    $throttle->hit($clientKey);
+}
 
 if ($invite !== null && ($_COOKIE['invite'] ?? null) !== $invite['token']) {
     setcookie('invite', $invite['token'], [
@@ -117,6 +129,10 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $respond(200, ['ok' => true, 'already' => true, 'summary' => render_summary($submission, $allMessages, $config, $locale)]);
     }
 
+    if ($tooManyTries) {
+        $respond(429, ['ok' => false, 'errors' => ['global' => $t->get('rsvp.error_throttle')]]);
+    }
+
     // Le jeton peut aussi voyager dans le corps de la requête (cookies bloqués).
     if ($invite === null && isset($payload['invite'])) {
         $invite = $guestList->findByToken((string) $payload['invite']);
@@ -130,6 +146,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
     // Sans jeton valide, aucune inscription possible.
     if ($invite === null) {
+        $throttle->hit($clientKey);
         $respond(403, ['ok' => false, 'errors' => ['global' => $t->get('rsvp.error_invite')]]);
     }
 
