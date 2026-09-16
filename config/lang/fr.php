@@ -1,0 +1,132 @@
+<?php
+/** Traductions françaises. */
+return [
+    'locale_tag'   => 'fr_FR',
+    'lang_name'    => 'Français',
+    'switch_to'    => 'Traduire en roumain',
+
+    'meta' => [
+        'title'       => 'Julia & Jérémy — 23 octobre 2027 — Château de Pontarmé',
+        'description' => "Julia & Jérémy se marient le 23 octobre 2027 au château de Pontarmé (Oise). Déroulement de la journée, hébergements et confirmation de présence.",
+        'og_title'    => 'Julia & Jérémy se marient — 23 octobre 2027',
+        'og_desc'     => "Rendez-vous le samedi 23 octobre 2027 au château de Pontarmé. Découvrez le déroulement de la journée, les hébergements à proximité et confirmez votre présence.",
+    ],
+
+    'nav' => [
+        'home'  => 'Accueil',
+        'day'   => 'Le jour J',
+        'stay'  => 'Hébergements',
+        'rsvp'  => 'Confirmer',
+        'menu'  => 'Menu',
+        'close' => 'Fermer',
+    ],
+
+    'hero' => [
+        'save'    => 'Save the date',
+        'union'   => 'se marient',
+        'and'     => '&',
+        'date'    => 'Samedi 23 octobre 2027',
+        'place'   => 'Château de Pontarmé — Oise',
+        'invite'  => 'Nous serions très heureux de vous compter parmi nous.',
+        'scroll'  => 'Faites défiler',
+        'cta'     => 'Confirmer ma présence',
+    ],
+
+    'countdown' => [
+        'title'   => 'Plus que',
+        'days'    => 'jours',
+        'hours'   => 'heures',
+        'minutes' => 'minutes',
+        'seconds' => 'secondes',
+        'today'   => "C'est aujourd'hui !",
+        'past'    => 'Merci d’avoir partagé ce jour avec nous.',
+    ],
+
+    'day' => [
+        'title'    => 'Le déroulement de la journée',
+        'subtitle' => 'Samedi 23 octobre 2027',
+        'map'      => 'Voir sur la carte',
+        'outro'    => 'La soirée se poursuivra jusqu’au bout de la nuit.',
+    ],
+
+    'schedule' => [
+        'mairie' => [
+            'title'   => 'Cérémonie civile',
+            'place'   => 'Mairie de Saint-Leu-d’Esserent',
+            'address' => '60340 Saint-Leu-d’Esserent',
+            'text'    => 'Nous échangeons nos premiers « oui » devant Monsieur le Maire.',
+        ],
+        'eglise' => [
+            'title'   => 'Cérémonie religieuse',
+            'place'   => 'Abbatiale Saint-Nicolas',
+            'address' => '60340 Saint-Leu-d’Esserent',
+            'text'    => 'Bénédiction de notre union sous les voûtes de l’abbatiale.',
+        ],
+        'chateau' => [
+            'title'   => 'Réception',
+            'place'   => 'Château de Pontarmé',
+            'address' => '60520 Pontarmé',
+            'text'    => 'Vin d’honneur, dîner et soirée dansante dans le parc du château.',
+        ],
+    ],
+
+    'stay' => [
+        'title'    => 'Où dormir',
+        'subtitle' => 'Quelques adresses autour du château de Pontarmé',
+        'book'     => 'Réserver',
+        'call'     => 'Appeler',
+        'distance' => 'À %s km du château',
+        'nearby'   => 'Aux alentours',
+        'note'     => 'Pensez à réserver tôt : le week-end du 23 octobre, la région de Chantilly et Senlis est très demandée. Merci de confirmer les tarifs et disponibilités directement auprès des établissements.',
+    ],
+
+    'rsvp' => [
+        'title'       => 'Confirmer votre présence',
+        'subtitle'    => 'Merci de répondre avant le %s',
+        'intro'       => 'Indiquez votre nom, puis ajoutez les personnes qui vous accompagnent.',
+        'guest'       => 'Invité·e n°%d',
+        'firstname'   => 'Prénom',
+        'lastname'    => 'Nom',
+        'allergens'   => 'Allergènes / régime alimentaire',
+        'allergens_ph'=> 'Ex. : arachides, sans gluten, végétarien…',
+        'is_child'    => 'Enfant ?',
+        'age'         => 'Âge',
+        'years'       => 'ans',
+        'add'         => 'Ajouter une personne',
+        'remove'      => 'Retirer',
+        'email'       => 'Votre e-mail (facultatif)',
+        'email_ph'    => 'pour recevoir une copie de votre réponse',
+        'submit'      => 'Je confirme ma présence',
+        'sending'     => 'Envoi en cours…',
+        'required'    => 'Champ obligatoire',
+        'error_names' => 'Merci d’indiquer le prénom et le nom de chaque personne.',
+        'error_age'   => 'Merci d’indiquer un âge valide pour chaque enfant (0 à 17 ans).',
+        'error_email' => 'Cette adresse e-mail ne semble pas valide.',
+        'error'       => 'Une erreur est survenue, merci de réessayer dans quelques instants.',
+        'no_child'    => 'Adulte',
+        'child'       => 'Enfant',
+        'none'        => 'Aucun',
+    ],
+
+    'summary' => [
+        'title'    => 'Votre réponse est enregistrée',
+        'thanks'   => 'Merci %s ! Nous avons bien reçu votre confirmation, nous avons hâte de partager ce jour avec vous.',
+        'sent_on'  => 'Réponse envoyée le %s',
+        'people'   => 'Personnes annoncées',
+        'total'    => '%d personne(s)',
+        'allergens'=> 'Allergènes',
+        'age'      => 'Âge',
+        'contact'  => 'Une erreur ou un changement ? Écrivez-nous à %s.',
+        'print'    => 'Imprimer le récapitulatif',
+    ],
+
+    'months' => ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'],
+    'at'     => 'à',
+
+    'footer' => [
+        'names'  => 'Julia & Jérémy',
+        'date'   => '23 · 10 · 2027',
+        'place'  => 'Château de Pontarmé, Oise',
+        'made'   => 'Avec amour, pour vous.',
+    ],
+];

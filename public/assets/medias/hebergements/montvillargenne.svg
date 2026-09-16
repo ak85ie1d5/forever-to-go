@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" width="640" height="420" role="img" aria-label="Château de Montvillargenne">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFDF7"/><stop offset="58%" stop-color="#F6EFE2"/><stop offset="100%" stop-color="#EADFCB"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity=".9"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" fill="url(#sky)"/>
+  <circle cx="500" cy="96" r="54" fill="#FFFFFF" opacity=".55"/>
+  <rect width="640" height="420" fill="url(#glow)" opacity=".5"/>
+  <g stroke="#B08D57" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".85">
+    <path d="M186 360V226h268v134"/>
+    <path d="M170 226l150-54 150 54"/>
+    <path d="M186 360V248h-46v112M454 360V248h46v112"/>
+    <path d="M128 248l34-42 34 42M444 248l34-42 34 42"/>
+    <path d="M162 206v-22M478 206v-22" stroke-width="1.1"/>
+    <path d="M226 360v-56a18 18 0 0 1 36 0v56M378 360v-56a18 18 0 0 1 36 0v56"/>
+    <path d="M300 360v-70h40v70"/>
+    <path d="M300 290a20 20 0 0 1 40 0"/>
+    <path d="M232 250h26v28h-26zM382 250h26v28h-26zM306 232h28v26h-28z"/>
+    <path d="M152 284h20v28h-20zM468 284h20v28h-20z"/>
+    <path d="M0 360h640"/>
+    <path d="M88 360v-70"/>
+    <path d="M88 290c-19 -6 -19 -34 0 -46 19 12 19 40 0 46Z"/>
+    <path d="M556 360v-64"/>
+    <path d="M556 296c-18 -6 -18 -34 0 -46 18 12 18 40 0 46Z"/>
+    <path d="M606 360v-48"/>
+    <path d="M606 312c-14 -6 -14 -34 0 -46 14 12 14 40 0 46Z"/>
+  </g>
+  <g stroke="#C9AE7C" stroke-width="1" stroke-opacity=".5" fill="none">
+    <path d="M0 372h640"/>
+    <path d="M0 372c12 0 12 12 24 12s12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12" stroke-opacity=".35"/>
+  </g>
+</svg>

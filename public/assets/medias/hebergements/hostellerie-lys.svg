@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" width="640" height="420" role="img" aria-label="Hostellerie du Lys">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFDF7"/><stop offset="58%" stop-color="#F6EFE2"/><stop offset="100%" stop-color="#EADFCB"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity=".9"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" fill="url(#sky)"/>
+  <circle cx="500" cy="96" r="54" fill="#FFFFFF" opacity=".55"/>
+  <rect width="640" height="420" fill="url(#glow)" opacity=".5"/>
+  <g stroke="#B08D57" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".85">
+    <path d="M170 360V246h300v114"/>
+    <path d="M150 246l170-64 170 64"/>
+    <path d="M170 292h300M232 246v114M320 246v114M408 246v114"/>
+    <path d="M196 306h30v34h-30zM266 306h30v34h-30zM344 306h30v34h-30zM414 306h30v34h-30z"/>
+    <path d="M196 254h28v28h-28zM424 254h28v28h-28z"/>
+    <path d="M300 360v-54h40v54"/>
+    <path d="M300 306h40"/>
+    <path d="M254 200v-24M264 176h-20" stroke-width="1.1"/>
+    <path d="M0 360h640"/>
+    <path d="M96 360v-72"/>
+    <path d="M96 288c-20 -6 -20 -34 0 -46 20 12 20 40 0 46Z"/>
+    <path d="M128 360v-52"/>
+    <path d="M128 308c-15 -6 -15 -34 0 -46 15 12 15 40 0 46Z"/>
+    <path d="M532 360v-76"/>
+    <path d="M532 284c-21 -6 -21 -34 0 -46 21 12 21 40 0 46Z"/>
+    <path d="M576 360v-54"/>
+    <path d="M576 306c-16 -6 -16 -34 0 -46 16 12 16 40 0 46Z"/>
+  </g>
+  <g stroke="#C9AE7C" stroke-width="1" stroke-opacity=".5" fill="none">
+    <path d="M0 372h640"/>
+    <path d="M0 372c12 0 12 12 24 12s12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12" stroke-opacity=".35"/>
+  </g>
+</svg>

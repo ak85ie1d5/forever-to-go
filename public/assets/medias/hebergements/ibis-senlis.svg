@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" width="640" height="420" role="img" aria-label="ibis Senlis">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFDF7"/><stop offset="58%" stop-color="#F6EFE2"/><stop offset="100%" stop-color="#EADFCB"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity=".9"/><stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="420" fill="url(#sky)"/>
+  <circle cx="500" cy="96" r="54" fill="#FFFFFF" opacity=".55"/>
+  <rect width="640" height="420" fill="url(#glow)" opacity=".5"/>
+  <g stroke="#B08D57" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".85">
+    <path d="M160 360V236h320v124"/>
+    <path d="M160 236h320"/>
+    <path d="M160 276h320M160 316h320"/>
+    <path d="M192 246h34v20h-34zM248 246h34v20h-34zM304 246h34v20h-34zM360 246h34v20h-34zM416 246h34v20h-34z"/>
+    <path d="M192 286h34v20h-34zM248 286h34v20h-34zM304 286h34v20h-34zM360 286h34v20h-34zM416 286h34v20h-34z"/>
+    <path d="M280 360v-36h80v36M280 324h80"/>
+    <path d="M268 324h104" stroke-width="1.1"/>
+    <path d="M320 236v-22M300 214h40" stroke-width="1.1"/>
+    <path d="M0 360h640"/>
+    <path d="M112 360v-56"/>
+    <path d="M112 304c-16 -6 -16 -34 0 -46 16 12 16 40 0 46Z"/>
+    <path d="M524 360v-60"/>
+    <path d="M524 300c-17 -6 -17 -34 0 -46 17 12 17 40 0 46Z"/>
+  </g>
+  <g stroke="#C9AE7C" stroke-width="1" stroke-opacity=".5" fill="none">
+    <path d="M0 372h640"/>
+    <path d="M0 372c12 0 12 12 24 12s12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12 12 12 24 12 12-12 24-12" stroke-opacity=".35"/>
+  </g>
+</svg>

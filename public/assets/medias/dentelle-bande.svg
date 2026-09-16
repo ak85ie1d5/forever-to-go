@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 26" width="120" height="26" fill="none">
+  <g stroke="#C9AE7C" stroke-width=".8" stroke-linecap="round">
+    <path d="M0 3h120" stroke-opacity=".5"/>
+    <path d="M0 3c5 0 5 11 10 11s5-11 10-11 5 11 10 11 5-11 10-11 5 11 10 11 5-11 10-11 5 11 10 11 5-11 10-11 5 11 10 11 5-11 10-11 5 11 10 11 5-11 10-11" stroke-opacity=".85"/>
+    <path d="M10 14c0 4-2 6-4 8m4-8c0 4 2 6 4 8M30 14c0 4-2 6-4 8m4-8c0 4 2 6 4 8M50 14c0 4-2 6-4 8m4-8c0 4 2 6 4 8M70 14c0 4-2 6-4 8m4-8c0 4 2 6 4 8M90 14c0 4-2 6-4 8m4-8c0 4 2 6 4 8M110 14c0 4-2 6-4 8m4-8c0 4 2 6 4 8" stroke-opacity=".45"/>
+  </g>
+  <g fill="#C9AE7C" fill-opacity=".65">
+    <circle cx="10" cy="15.6" r="1.1"/><circle cx="30" cy="15.6" r="1.1"/><circle cx="50" cy="15.6" r="1.1"/>
+    <circle cx="70" cy="15.6" r="1.1"/><circle cx="90" cy="15.6" r="1.1"/><circle cx="110" cy="15.6" r="1.1"/>
+    <circle cx="20" cy="6.4" r=".9"/><circle cx="40" cy="6.4" r=".9"/><circle cx="60" cy="6.4" r=".9"/>
+    <circle cx="80" cy="6.4" r=".9"/><circle cx="100" cy="6.4" r=".9"/><circle cx="0" cy="6.4" r=".9"/><circle cx="120" cy="6.4" r=".9"/>
+  </g>
+</svg>
