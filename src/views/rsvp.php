@@ -4,6 +4,8 @@
 if (!function_exists('render_guest_block')) {
     /**
      * Bloc « invité ». $index = -1 produit le gabarit JS (index remplacé par __I__).
+     * Le premier bloc (index 0) est celui de la personne qui remplit le formulaire :
+     * on y masque « Enfant ? » et « Âge », réservés aux accompagnants ajoutés ensuite.
      */
     function render_guest_block(I18n $t, int $index, array $prefill = []): string
     {
@@ -19,6 +21,21 @@ if (!function_exists('render_guest_block')) {
         $lChild   = e($t->get('rsvp.is_child'));
         $lAge     = e($t->get('rsvp.age'));
         $lRemove  = e($t->get('rsvp.remove'));
+
+        $childFields = $index === 0 ? '' : <<<HTML
+        <div class="field field--switch">
+            <span class="field__label" data-i18n="rsvp.is_child">{$lChild}</span>
+            <label class="switch" for="child-{$i}">
+                <input type="checkbox" id="child-{$i}" name="guests[{$i}][is_child]" value="1" data-child>
+                <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                <span class="sr-only" data-i18n="rsvp.is_child">{$lChild}</span>
+            </label>
+        </div>
+        <div class="field field--age" data-age hidden>
+            <label for="age-{$i}" data-i18n="rsvp.age">{$lAge}</label>
+            <input type="number" id="age-{$i}" name="guests[{$i}][age]" min="0" max="17" step="1" inputmode="numeric" disabled>
+        </div>
+HTML;
 
         return <<<HTML
 <fieldset class="guest" data-guest>
@@ -44,19 +61,7 @@ if (!function_exists('render_guest_block')) {
             <input type="text" id="allergens-{$i}" name="guests[{$i}][allergens]" maxlength="300"
                    placeholder="{$phAller}" data-i18n-attr="placeholder:rsvp.allergens_ph">
         </div>
-        <div class="field field--switch">
-            <span class="field__label" data-i18n="rsvp.is_child">{$lChild}</span>
-            <label class="switch" for="child-{$i}">
-                <input type="checkbox" id="child-{$i}" name="guests[{$i}][is_child]" value="1" data-child>
-                <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
-                <span class="sr-only" data-i18n="rsvp.is_child">{$lChild}</span>
-            </label>
-        </div>
-        <div class="field field--age" data-age hidden>
-            <label for="age-{$i}" data-i18n="rsvp.age">{$lAge}</label>
-            <input type="number" id="age-{$i}" name="guests[{$i}][age]" min="0" max="17" step="1" inputmode="numeric" disabled>
-        </div>
-    </div>
+{$childFields}    </div>
 </fieldset>
 HTML;
     }

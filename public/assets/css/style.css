@@ -502,6 +502,11 @@ h1, h2, h3 { font-weight: 400; margin: 0; line-height: 1.18; }
 .field--switch { flex-direction: row; align-items: center; gap: .9rem; display: flex; }
 .field--age input { max-width: 8rem; }
 
+/* Champs numériques : on masque les flèches natives des navigateurs. */
+.field input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.field input[type="number"]::-webkit-outer-spin-button,
+.field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+
 /* Interrupteur « Enfant ? » */
 .switch { display: inline-flex; align-items: center; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
