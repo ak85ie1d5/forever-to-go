@@ -121,6 +121,8 @@ return [
         'from_name' => 'Julia & Jérémy — Mariage',
     ],
 
-    // Dossier de stockage des confirmations (hors document root)
+    // Liste des invités (une ligne par personne) et stockage des réponses,
+    // tous deux hors document root.
+    'guest_list'  => __DIR__ . '/invites.csv',
     'storage_dir' => dirname(__DIR__) . '/var/rsvp',
 ];

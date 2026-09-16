@@ -7,7 +7,6 @@
  * @var DateTimeImmutable $weddingDate
  * @var DateTimeImmutable $deadline
  * @var array|null $submission
- * @var array $prefill
  * @var array $jsPayload
  * @var array $allMessages
  */

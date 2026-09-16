@@ -67,12 +67,13 @@ final class I18n
     }
 }
 
-/** Détermine la langue demandée (GET > cookie > Accept-Language > défaut). */
-function detect_locale(array $available, string $default): string
+/** Langue retenue : GET > cookie > langue de l'invité > Accept-Language > défaut. */
+function detect_locale(array $available, string $default, ?string $preferred = null): string
 {
-    $candidate = $_GET['lang'] ?? $_COOKIE['lang'] ?? null;
-    if (is_string($candidate) && isset($available[$candidate])) {
-        return $candidate;
+    foreach ([$_GET['lang'] ?? null, $_COOKIE['lang'] ?? null, $preferred] as $candidate) {
+        if (is_string($candidate) && isset($available[$candidate])) {
+            return $candidate;
+        }
     }
     $header = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
     foreach (explode(',', $header) as $chunk) {

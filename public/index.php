@@ -11,6 +11,7 @@ $root = dirname(__DIR__);
 require $root . '/src/helpers.php';
 require $root . '/src/Mailer.php';
 require $root . '/src/Rsvp.php';
+require $root . '/src/GuestList.php';
 
 $config = require $root . '/config/settings.php';
 $env    = env_load($root . '/.env.local');
@@ -19,9 +20,26 @@ date_default_timezone_set('Europe/Paris');
 mb_internal_encoding('UTF-8');
 
 // ---------------------------------------------------------------------------
+// Invitation : l'accès au formulaire passe obligatoirement par un jeton (?i=...)
+// ---------------------------------------------------------------------------
+$guestList      = new GuestList($config['guest_list']);
+$requestedToken = isset($_GET['i']) ? (string) $_GET['i'] : null;   // lien explicitement fourni
+$invite         = $guestList->findByToken($requestedToken ?? (string) ($_COOKIE['invite'] ?? ''));
+$invalidInvite  = $requestedToken !== null && $invite === null;
+
+if ($invite !== null && ($_COOKIE['invite'] ?? null) !== $invite['token']) {
+    setcookie('invite', $invite['token'], [
+        'expires'  => time() + 400 * 86400,
+        'path'     => '/',
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+// ---------------------------------------------------------------------------
 // Langue
 // ---------------------------------------------------------------------------
-$locale   = detect_locale($config['locales'], $config['default_locale']);
+$locale   = detect_locale($config['locales'], $config['default_locale'], $invite['locale'] ?? null);
 $messages = require $root . '/config/lang/' . $locale . '.php';
 $t        = new I18n($messages, $locale);
 
@@ -49,7 +67,23 @@ $deadline    = new DateTimeImmutable($config['rsvp_deadline']);
 // Réponse déjà envoyée ?
 // ---------------------------------------------------------------------------
 $rsvp       = new Rsvp($config['storage_dir']);
-$submission = $rsvp->find($_COOKIE[Rsvp::COOKIE] ?? null);
+// Un lien invalide ne doit jamais retomber sur la réponse d'un précédent visiteur
+// du même appareil : on affiche la porte fermée.
+$submission = match (true) {
+    $invite !== null => $rsvp->findByInvite($invite['token']),
+    $invalidInvite   => null,
+    default          => $rsvp->find($_COOKIE[Rsvp::COOKIE] ?? null),
+};
+
+// Personnes du même foyer encore susceptibles d'être ajoutées à la réponse.
+$companions = [];
+if ($invite !== null && $submission === null) {
+    foreach ($guestList->groupMembers($invite) as $member) {
+        if ($rsvp->findByInvite($member['token']) === null) {
+            $companions[] = $member;
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // POST : enregistrement d'une confirmation (appel fetch depuis la SPA)
@@ -83,12 +117,28 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $respond(200, ['ok' => true, 'already' => true, 'summary' => render_summary($submission, $allMessages, $config, $locale)]);
     }
 
+    // Le jeton peut aussi voyager dans le corps de la requête (cookies bloqués).
+    if ($invite === null && isset($payload['invite'])) {
+        $invite = $guestList->findByToken((string) $payload['invite']);
+        if ($invite !== null) {
+            $submission = $rsvp->findByInvite($invite['token']);
+            if ($submission !== null) {
+                $respond(200, ['ok' => true, 'already' => true, 'summary' => render_summary($submission, $allMessages, $config, $locale)]);
+            }
+        }
+    }
+
+    // Sans jeton valide, aucune inscription possible.
+    if ($invite === null) {
+        $respond(403, ['ok' => false, 'errors' => ['global' => $t->get('rsvp.error_invite')]]);
+    }
+
     // Pot de miel anti-robots.
     if (trim((string) ($payload['website'] ?? '')) !== '') {
         $respond(422, ['ok' => false, 'errors' => ['global' => $t->get('rsvp.error')]]);
     }
 
-    [$errors, $data] = $rsvp->validate($payload, $t);
+    [$errors, $data] = $rsvp->validate($payload, $t, $guestList, $invite);
 
     if ($errors !== []) {
         $respond(422, ['ok' => false, 'errors' => $errors]);
@@ -148,11 +198,6 @@ function flatten_messages(array $messages, string $prefix = ''): array
 $routes = ['' => 'accueil', 'le-jour-j' => 'jour-j', 'hebergements' => 'hebergements', 'rsvp' => 'rsvp'];
 $path   = trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/', '/');
 $route  = $routes[(string) ($_GET['s'] ?? $path)] ?? ($routes[$path] ?? 'accueil');
-
-$prefill = [
-    'firstname' => mb_substr(trim((string) ($_GET['firstname'] ?? '')), 0, 60),
-    'lastname'  => mb_substr(trim((string) ($_GET['lastname'] ?? '')), 0, 60),
-];
 
 $jsPayload = [
     'locale'      => $locale,

@@ -507,6 +507,37 @@ h1, h2, h3 { font-weight: 400; margin: 0; line-height: 1.18; }
 .field input[type="number"]::-webkit-outer-spin-button,
 .field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
 
+/* Identité imposée par l'invitation */
+.guest--you { background: rgba(234, 223, 203, .22); }
+.guest__identity {
+    margin: .2rem 0 1rem; font-style: italic; color: var(--anthracite-doux); font-size: .95rem;
+}
+.field input[readonly] {
+    color: var(--anthracite-doux); border-bottom-style: dotted; cursor: default;
+}
+.field input[readonly]:focus { background: none; border-bottom-color: var(--nude); }
+
+/* Liste déroulante « qui vous accompagne ? » */
+.field select {
+    font: inherit; font-size: 1.02rem; color: var(--anthracite);
+    background: transparent; border: 0; border-bottom: 1px solid var(--nude);
+    padding: .5rem .2rem; border-radius: 0; appearance: none; -webkit-appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--or) 50%), linear-gradient(135deg, var(--or) 50%, transparent 50%);
+    background-position: calc(100% - 12px) 1.15em, calc(100% - 7px) 1.15em;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+    transition: border-color .3s ease;
+}
+.field select:focus { outline: none; border-bottom-color: var(--or); }
+
+/* Accès réservé aux invités (pas de jeton valide) */
+.gate { text-align: center; display: grid; gap: .7rem; justify-items: center; }
+.gate__seal { width: 64px; }
+.gate__title { font-size: clamp(1.6rem, 3vw, 2.2rem); }
+.gate__text { margin: 0; max-width: 34rem; color: var(--anthracite-doux); }
+.gate__help { margin: 0; max-width: 34rem; color: var(--anthracite-doux); font-style: italic; font-size: .94rem; }
+.gate .btn { margin-top: .6rem; }
+
 /* Interrupteur « Enfant ? » */
 .switch { display: inline-flex; align-items: center; cursor: pointer; }
 .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
