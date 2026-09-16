@@ -1,6 +1,7 @@
 <?php
 /**
- * Liste des invités, tenue dans un simple fichier CSV (config/invites.csv).
+ * Liste des invités, tenue dans un simple fichier CSV (var/rsvp/invites.csv, hors dépôt).
+ * Modèle versionné : config/invites.example.csv
  * Une ligne = une personne. Séparateur « ; » ou « , » détecté automatiquement.
  *
  * Colonnes reconnues (l'ordre n'importe pas, seul l'en-tête compte) :
@@ -33,6 +34,7 @@ final class GuestList
     private function load(): void
     {
         if (!is_readable($this->file)) {
+            error_log('[invites] Liste introuvable : ' . $this->file . ' — copiez config/invites.example.csv vers var/rsvp/invites.csv');
             return;
         }
         $handle = fopen($this->file, 'r');

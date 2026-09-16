@@ -24,7 +24,7 @@ $command = $argv[1] ?? 'etat';
 function read_csv(string $file): array
 {
     if (!is_readable($file)) {
-        fwrite(STDERR, "Fichier introuvable : $file\n");
+        fwrite(STDERR, "Liste introuvable : $file\n  → copiez config/invites.example.csv vers var/rsvp/invites.csv\n");
         exit(1);
     }
     $lines = file($file, FILE_IGNORE_NEW_LINES);

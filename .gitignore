@@ -1,3 +1,5 @@
 .env.local
 CLAUDE.md
 CLAUDE
+# Fichiers de verrouillage LibreOffice
+.~lock.*#

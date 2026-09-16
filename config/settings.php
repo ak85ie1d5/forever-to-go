@@ -121,8 +121,9 @@ return [
         'from_name' => 'Julia & Jérémy — Mariage',
     ],
 
-    // Liste des invités (une ligne par personne) et stockage des réponses,
-    // tous deux hors document root.
-    'guest_list'  => __DIR__ . '/invites.csv',
+    // Liste des invités (une ligne par personne) et stockage des réponses.
+    // Tous deux dans var/ : hors document root et hors dépôt Git.
+    // Modèle de départ versionné : config/invites.example.csv
+    'guest_list'  => dirname(__DIR__) . '/var/rsvp/invites.csv',
     'storage_dir' => dirname(__DIR__) . '/var/rsvp',
 ];
