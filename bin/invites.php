@@ -10,7 +10,8 @@ declare(strict_types=1);
  *   php bin/invites.php envoyer [jeton]   envoie les invitations — toutes, ou une seule
  *   php bin/invites.php etat              qui a répondu, qui n'a pas encore répondu
  *
- * L'adresse du site est lue dans .env.local (URL=...).
+ * L'adresse du site vient du nom d'hôte de la machine (HOSTNAME, puis gethostname()),
+ * et à défaut de URL=... dans .env.local.
  * Exemple : docker compose exec php php bin/invites.php envoyer
  */
 
@@ -25,13 +26,56 @@ $csv     = $config['guest_list'];
 $command = $argv[1] ?? 'etat';
 $token   = $argv[2] ?? null;   // facultatif : restreint à un seul invité
 
-/** Adresse publique du site, depuis .env.local. */
-function site_url(string $root): string
+/**
+ * Adresse publique du site, dans cet ordre :
+ *   1. variable d'environnement HOSTNAME (export shell, .env Docker, systemd Environment=) ;
+ *   2. nom d'hôte du système via gethostname() — le seul disponible sous cron ou systemd,
+ *      où HOSTNAME n'est pas exporté ;
+ *   3. URL=... dans .env.local, si le nom d'hôte de la machine n'est pas celui du site.
+ *
+ * $strict interdit un hôte inutilisable dans un e-mail (id de conteneur, localhost…).
+ */
+function site_url(string $root, bool $strict = false): string
 {
-    $url = rtrim((string) (env_load($root . '/.env.local')['URL'] ?? ''), '/');
+    $candidates = [
+        (string) (getenv('HOSTNAME') ?: ''),
+        (string) (gethostname() ?: ''),
+        (string) (env_load($root . '/.env.local')['URL'] ?? ''),
+    ];
+
+    $url = '';
+    foreach ($candidates as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate !== '') {
+            $url = $candidate;
+            break;
+        }
+    }
+
     if ($url === '') {
-        fwrite(STDERR, "Adresse du site inconnue.\n  → renseignez URL=https://votre-domaine.fr dans .env.local\n");
+        fwrite(STDERR, "Adresse du site inconnue.\n  → définissez le nom d'hôte de la machine, ou URL=https://... dans .env.local\n");
         exit(1);
+    }
+    if (!preg_match('~^https?://~i', $url)) {
+        $url = 'https://' . $url;
+    }
+    $url  = rtrim($url, '/');
+    $host = (string) parse_url($url, PHP_URL_HOST);
+
+    // Un hôte sans point (id de conteneur Docker) ou local ne mène nulle part depuis une boîte mail.
+    $usable = str_contains($host, '.')
+        && !in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+        && !str_ends_with($host, '.local');
+
+    if (!$usable) {
+        $message = "L'adresse du site n'est pas publique : $url\n"
+            . "  → sur le serveur : hostnamectl set-hostname mariage.votre-domaine.fr\n"
+            . "  → ou renseignez URL=https://mariage.votre-domaine.fr dans .env.local\n";
+        if ($strict) {
+            fwrite(STDERR, $message);
+            exit(1);
+        }
+        fwrite(STDERR, "Attention — " . $message . "\n");
     }
 
     return $url;
@@ -170,14 +214,8 @@ switch ($command) {
 
     // -----------------------------------------------------------------------
     case 'envoyer':
-        $site = site_url($root);
-
-        // Garde-fou : des liens en localhost dans une invitation, c'est irrattrapable.
-        $host = (string) parse_url($site, PHP_URL_HOST);
-        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true) || str_ends_with($host, '.local')) {
-            fwrite(STDERR, "L'adresse du site est locale ($site) : les invités auraient un lien inutilisable.\n  → renseignez le vrai domaine dans .env.local avant d'envoyer\n");
-            exit(1);
-        }
+        $site = site_url($root, true); // hôte public obligatoire : un envoi ne se rattrape pas
+        echo "Site : $site\n\n";
 
         $mailer = new Mailer((string) (env_load($root . '/.env.local')['MAILER_DSN'] ?? ''));
         $sent   = 0;
