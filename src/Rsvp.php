@@ -119,7 +119,10 @@ final class Rsvp
     {
         $file = $this->storageDir . '/' . $data['token'] . '.json';
         $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($json === false || file_put_contents($file, $json, LOCK_EX) === false) {
+        // L'écriture est silencieuse : un dossier non inscriptible doit produire une
+        // réponse JSON propre, pas une alerte PHP au milieu du flux.
+        if ($json === false || @file_put_contents($file, $json, LOCK_EX) === false) {
+            error_log('[RSVP] Écriture impossible dans ' . $file . ' — vérifiez les droits du dossier var/rsvp');
             return false;
         }
         foreach ($data['guests_tokens'] ?? [] as $inviteToken) {
