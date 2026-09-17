@@ -33,19 +33,19 @@ return [
     'schedule' => [
         [
             'id'    => 'mairie',
-            'time'  => '16:00',
+            'time'  => '15:00',
             'icon'  => 'rings',
             'map'   => 'https://www.google.com/maps/search/?api=1&query=Mairie+de+Saint-Leu-d%27Esserent',
         ],
         [
             'id'    => 'eglise',
-            'time'  => '16:30',
+            'time'  => '15:30',
             'icon'  => 'church',
             'map'   => 'https://www.google.com/maps/search/?api=1&query=Abbatiale+Saint-Nicolas+Saint-Leu-d%27Esserent',
         ],
         [
             'id'    => 'chateau',
-            'time'  => '18:00',
+            'time'  => '17:00',
             'icon'  => 'glasses',
             'map'   => 'https://www.google.com/maps/search/?api=1&query=Ch%C3%A2teau+de+Pontarm%C3%A9',
         ],

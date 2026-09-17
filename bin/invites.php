@@ -32,9 +32,10 @@ $token   = $argv[2] ?? null;   // facultatif : restreint à un seul invité
  *   2. nom d'hôte du système via gethostname() — le seul disponible sous cron ou systemd,
  *      où HOSTNAME n'est pas exporté.
  *
- * $strict interdit un hôte inutilisable dans un e-mail (id de conteneur, localhost…).
+ * $strict interdit un hôte inutilisable dans un e-mail (id de conteneur, localhost…) ;
+ * $warn affiche un simple avertissement dans le cas contraire.
  */
-function site_url(string $root, bool $strict = false): string
+function site_url(string $root, bool $strict = false, bool $warn = true): string
 {
     $candidates = [
         env_get('HOSTNAME'),          // .env.local, puis variable d'environnement
@@ -73,7 +74,9 @@ function site_url(string $root, bool $strict = false): string
             fwrite(STDERR, $message);
             exit(1);
         }
-        fwrite(STDERR, "Attention — " . $message . "\n");
+        if ($warn) {
+            fwrite(STDERR, "Attention — " . $message . "\n");
+        }
     }
 
     return $url;
@@ -100,6 +103,24 @@ function invitation(array $guest, string $site, array $config, string $root): ar
     })($guest, $link, $site, $deadline, $contact, $template);
 
     return $mail + ['link' => $link, 'locale' => $locale, 'contact' => $contact];
+}
+
+/** DSN sans identifiants, pour l'affichage. */
+function dsn_label(string $dsn): string
+{
+    if ($dsn === '') {
+        return 'mail() du système';
+    }
+    $parts = parse_url($dsn);
+    if ($parts === false || !isset($parts['host'])) {
+        return '(DSN illisible)';
+    }
+    $label = ($parts['scheme'] ?? 'smtp') . '://';
+    if (isset($parts['user'])) {
+        $label .= $parts['user'] . ':***@';
+    }
+
+    return $label . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
 }
 
 /** Les invités concernés : tous, ou celui dont le jeton est passé en paramètre. */
@@ -174,7 +195,12 @@ switch ($command) {
     case 'liens':
         $site = site_url($root);
         foreach (selection(new GuestList($csv), $token) as $guest) {
-            printf("%-28s %s\n", trim($guest['firstname'] . ' ' . $guest['lastname']), invitation($guest, $site, $config, $root)['link']);
+            $name = trim($guest['firstname'] . ' ' . $guest['lastname']);
+            if (GuestList::isChild($guest)) {
+                printf("%-28s (enfant — déclaré par ses parents)\n", $name);
+                continue;
+            }
+            printf("%-28s %s\n", $name, invitation($guest, $site, $config, $root)['link']);
         }
         break;
 
@@ -189,7 +215,13 @@ switch ($command) {
 
         $rows = [['email', 'prenom', 'nom', 'langue', 'sujet', 'lien']];
         $done = 0;
+        $kids = [];
         foreach (selection(new GuestList($csv), $token) as $guest) {
+            // Les enfants sont déclarés par leurs parents : pas d'invitation séparée.
+            if (GuestList::isChild($guest)) {
+                $kids[] = trim($guest['firstname'] . ' ' . $guest['lastname']);
+                continue;
+            }
             $mail = invitation($guest, $site, $config, $root);
             file_put_contents($outDir . '/' . $guest['token'] . '.html', $mail['html']);
             if (filter_var($guest['email'], FILTER_VALIDATE_EMAIL)) {
@@ -208,19 +240,38 @@ switch ($command) {
         }
         fclose($handle);
         echo "$done invitation(s) préparée(s) dans $outDir\n";
+        if ($kids !== []) {
+            echo 'Enfants ignorés (déclarés par leurs parents) : ' . implode(', ', $kids) . "\n";
+        }
         break;
 
     // -----------------------------------------------------------------------
     case 'envoyer':
-        $site = site_url($root, true); // hôte public obligatoire : un envoi ne se rattrape pas
-        echo "Site : $site\n\n";
+        $dsn = env_get('MAILER_DSN');
 
-        $mailer = new Mailer(env_get('MAILER_DSN'));
-        $sent   = 0;
+        // Boîte de test locale (maildev, mailpit…) : rien ne sort de la machine,
+        // une adresse de site locale est donc parfaitement acceptable.
+        $dsnHost  = strtolower((string) parse_url($dsn, PHP_URL_HOST));
+        $testInbox = in_array($dsnHost, ['maildev', 'mailpit', 'mailhog', 'localhost', '127.0.0.1', '::1'], true);
+
+        // Vers un vrai serveur d'envoi, en revanche, un lien inutilisable ne se rattrape pas.
+        $site = site_url($root, !$testInbox, !$testInbox);
+
+        echo "Site : $site\n";
+        echo 'Envoi : ' . dsn_label($dsn)
+            . ($testInbox ? " — boîte de test locale, les invités ne recevront rien.\n\n" : "\n\n");
+
+        $mailer  = new Mailer($dsn);
+        $sent    = 0;
         $skipped = [];
+        $kids    = [];
 
         foreach (selection(new GuestList($csv), $token) as $guest) {
             $name = trim($guest['firstname'] . ' ' . $guest['lastname']);
+            if (GuestList::isChild($guest)) {
+                $kids[] = $name;
+                continue;
+            }
             if (!filter_var($guest['email'], FILTER_VALIDATE_EMAIL)) {
                 $skipped[] = $name;
                 continue;
@@ -233,8 +284,11 @@ switch ($command) {
         }
 
         echo "\n$sent invitation(s) envoyée(s).\n";
+        if ($kids !== []) {
+            echo 'Enfants, invités via leurs parents : ' . implode(', ', $kids) . "\n";
+        }
         if ($skipped !== []) {
-            echo 'Sans adresse e-mail : ' . implode(', ', $skipped) . "\n";
+            echo 'ADULTES SANS ADRESSE — à inviter autrement : ' . implode(', ', $skipped) . "\n";
         }
         if ($mailer->errors() !== []) {
             echo 'Erreurs : ' . implode(' | ', $mailer->errors()) . "\n";
@@ -248,11 +302,13 @@ switch ($command) {
         $rsvp = new Rsvp($config['storage_dir']);
         $yes  = [];
         $no   = [];
+        $hair = 0;
+        $makeup = 0;
         foreach ($list->all() as $guest) {
             $answer = $rsvp->findByInvite($guest['token']);
             $name   = trim($guest['firstname'] . ' ' . $guest['lastname']);
             if ($answer === null) {
-                $no[] = $name;
+                $no[] = $name . (GuestList::isChild($guest) ? ' (enfant)' : '');
                 continue;
             }
             $self = null;
@@ -261,9 +317,17 @@ switch ($command) {
                     $self = $person;
                 }
             }
+            $hair   += $self && !empty($self['hair']) ? 1 : 0;
+            $makeup += $self && !empty($self['makeup']) ? 1 : 0;
+
             $detail = $self && !empty($self['is_child']) ? 'enfant' : 'adulte';
             if ($self && trim((string) $self['allergens']) !== '') {
                 $detail .= ', ' . $self['allergens'];
+            }
+            foreach (['hair' => 'coiffure', 'makeup' => 'maquillage'] as $key => $label) {
+                if ($self && !empty($self[$key])) {
+                    $detail .= ', ' . $label;
+                }
             }
             $yes[] = sprintf('%-28s %s  (%s)', $name, substr((string) $answer['created_at'], 0, 10), $detail);
         }
@@ -271,5 +335,31 @@ switch ($command) {
         echo $yes === [] ? "  —\n" : '  ' . implode("\n  ", $yes) . "\n";
         echo "\nSans réponse (" . count($no) . ") :\n";
         echo $no === [] ? "  —\n" : '  ' . implode("\n  ", $no) . "\n";
+        echo "\nPrestations du 23/10 à 13:00 — coiffure : $hair · maquillage : $makeup\n";
+
+        // Un enfant ne reçoit pas d'invitation : il faut qu'un adulte de son foyer
+        // en reçoive une, sans quoi personne ne pourra le déclarer.
+        $orphans = [];
+        foreach ($list->all() as $guest) {
+            if (!GuestList::isChild($guest)) {
+                continue;
+            }
+            $reachable = false;
+            foreach ($list->groupMembers($guest) as $member) {
+                if (!GuestList::isChild($member) && filter_var($member['email'], FILTER_VALIDATE_EMAIL)) {
+                    $reachable = true;
+                    break;
+                }
+            }
+            if (!$reachable) {
+                $orphans[] = trim($guest['firstname'] . ' ' . $guest['lastname'])
+                    . ($guest['group'] === '' ? ' (aucun groupe)' : ' (groupe « ' . $guest['group'] . ' »)');
+            }
+        }
+        if ($orphans !== []) {
+            echo "\nÀ CORRIGER — enfants que personne ne peut déclarer,\n"
+                . "faute d'un adulte avec adresse e-mail dans leur groupe :\n  "
+                . implode("\n  ", $orphans) . "\n";
+        }
         break;
 }
