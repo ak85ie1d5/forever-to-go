@@ -113,14 +113,19 @@ return [
     ],
 
     // ---------------------------------------------------------------------
-    // Notifications
+    // Notifications — les adresses viennent de .env.local ou de l'environnement :
+    //   MAILER_FROM  expéditeur des messages envoyés par le site
+    //   MAILER_TO    destinataires des confirmations (plusieurs, séparés par une virgule)
     // ---------------------------------------------------------------------
     'mail' => [
-        'to'        => ['juliapohrib@yahoo.fr', 'jeremy.spaeth@ik.me'],
-        'from'      => 'no-reply@julia-et-jeremy.fr',
+        'to'        => env_emails('MAILER_TO'),
+        'from'      => filter_var(env_get('MAILER_FROM'), FILTER_VALIDATE_EMAIL) ?: '',
         'from_name' => 'Julia & Jérémy — Mariage',
     ],
 
-    // Dossier de stockage des confirmations (hors document root)
+    // Liste des invités (une ligne par personne) et stockage des réponses.
+    // Tous deux dans var/ : hors document root et hors dépôt Git.
+    // Modèle de départ versionné : config/invites.example.csv
+    'guest_list'  => dirname(__DIR__) . '/var/rsvp/invites.csv',
     'storage_dir' => dirname(__DIR__) . '/var/rsvp',
 ];

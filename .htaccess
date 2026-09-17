@@ -1,0 +1,22 @@
+# Hostinger ne permet pas de choisir la racine web : elle pointe sur la racine du
+# projet. On redirige donc tout vers public/, qui est le vrai dossier public.
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Une requête déjà réécrite ne doit pas l'être une seconde fois.
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Filet de sécurité : si la réécriture était désactivée, ces fichiers seraient
+# servis en clair. On les interdit explicitement, indépendamment de mod_rewrite.
+<FilesMatch "^\.env">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "\.(csv|json|jsonl|log|md|sample)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes

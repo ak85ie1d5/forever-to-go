@@ -276,6 +276,22 @@
     var zone = document.getElementById('rsvp-zone');
 
     function bindGuest(fieldset) {
+        var picker = fieldset.querySelector('[data-companion]');
+        var tokenInput = fieldset.querySelector('[data-token]');
+        if (picker) {
+            var firstInput = fieldset.querySelector('input[name*="[firstname]"]');
+            var lastInput = fieldset.querySelector('input[name*="[lastname]"]');
+            picker.addEventListener('change', function () {
+                var option = picker.options[picker.selectedIndex];
+                var free = picker.value === '__other__';
+                firstInput.value = free ? '' : (option.getAttribute('data-first') || '');
+                lastInput.value = free ? '' : (option.getAttribute('data-last') || '');
+                firstInput.readOnly = lastInput.readOnly = !free;
+                if (tokenInput) { tokenInput.value = free ? '' : picker.value; }
+                if (free) { firstInput.focus(); }
+            });
+        }
+
         var toggle = fieldset.querySelector('[data-child]');
         var ageField = fieldset.querySelector('[data-age]');
         var ageInput = ageField ? ageField.querySelector('input') : null;
@@ -312,7 +328,7 @@
                 number.setAttribute('data-i18n-args', String(index + 1));
                 number.textContent = translate('rsvp.guest', [index + 1]);
             }
-            Array.prototype.forEach.call(fieldset.querySelectorAll('input'), function (input) {
+            Array.prototype.forEach.call(fieldset.querySelectorAll('input, select'), function (input) {
                 if (input.name) {
                     input.name = input.name.replace(/guests\[[^\]]*\]/, 'guests[' + index + ']');
                 }
@@ -326,8 +342,10 @@
         });
 
         var addButton = document.getElementById('add-guest');
+        var form = document.getElementById('rsvp-form');
+        var max = form ? parseInt(form.getAttribute('data-max'), 10) : 12;
         if (addButton) {
-            addButton.hidden = list.querySelectorAll('[data-guest]').length >= 12;
+            addButton.hidden = list.querySelectorAll('[data-guest]').length >= (max || 12);
         }
     }
 
@@ -382,6 +400,7 @@
                 };
                 var isChild = !!fieldset.querySelector('[data-child]:checked');
                 var guest = {
+                    token: value('input[name*="[token]"]'),
                     firstname: value('input[name*="[firstname]"]'),
                     lastname: value('input[name*="[lastname]"]'),
                     allergens: value('input[name*="[allergens]"]'),
@@ -389,7 +408,7 @@
                     age: isChild ? value('input[name*="[age]"]') : null
                 };
 
-                Array.prototype.forEach.call(fieldset.querySelectorAll('input'), function (input) {
+                Array.prototype.forEach.call(fieldset.querySelectorAll('input, select'), function (input) {
                     input.removeAttribute('aria-invalid');
                 });
 
@@ -435,6 +454,7 @@
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 credentials: 'same-origin',
                 body: JSON.stringify({
+                    invite: form.getAttribute('data-invite') || '',
                     guests: guests,
                     email: email,
                     locale: locale,

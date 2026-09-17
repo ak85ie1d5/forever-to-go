@@ -26,6 +26,35 @@ function env_load(string $file): array
     return $vars;
 }
 
+/**
+ * Valeur d'une variable de configuration : .env.local d'abord (configuration
+ * explicite du projet), puis l'environnement du système (Docker, systemd, shell).
+ */
+function env_get(string $key, string $default = ''): string
+{
+    static $local = null;
+    if ($local === null) {
+        $local = env_load(dirname(__DIR__) . '/.env.local');
+    }
+    $value = trim((string) ($local[$key] ?? ''));
+    if ($value === '') {
+        $value = trim((string) (getenv($key) ?: ''));
+    }
+
+    return $value !== '' ? $value : $default;
+}
+
+/** Liste d'adresses e-mail valides, séparées par des virgules ou des points-virgules. */
+function env_emails(string $key): array
+{
+    $addresses = preg_split('/[;,]/', env_get($key)) ?: [];
+
+    return array_values(array_filter(
+        array_map('trim', $addresses),
+        static fn(string $address) => filter_var($address, FILTER_VALIDATE_EMAIL) !== false
+    ));
+}
+
 /** Traductions : accès par chemin pointé, ex. t('rsvp.title'). */
 final class I18n
 {
@@ -67,12 +96,13 @@ final class I18n
     }
 }
 
-/** Détermine la langue demandée (GET > cookie > Accept-Language > défaut). */
-function detect_locale(array $available, string $default): string
+/** Langue retenue : GET > cookie > langue de l'invité > Accept-Language > défaut. */
+function detect_locale(array $available, string $default, ?string $preferred = null): string
 {
-    $candidate = $_GET['lang'] ?? $_COOKIE['lang'] ?? null;
-    if (is_string($candidate) && isset($available[$candidate])) {
-        return $candidate;
+    foreach ([$_GET['lang'] ?? null, $_COOKIE['lang'] ?? null, $preferred] as $candidate) {
+        if (is_string($candidate) && isset($available[$candidate])) {
+            return $candidate;
+        }
     }
     $header = $_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? '';
     foreach (explode(',', $header) as $chunk) {

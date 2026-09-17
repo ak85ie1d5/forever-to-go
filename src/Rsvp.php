@@ -15,21 +15,25 @@ final class Rsvp
 
     /**
      * Nettoie et valide la charge utile du formulaire.
+     * L'identité du premier invité vient du jeton (jamais du navigateur) et chaque
+     * accompagnant doit correspondre à une ligne de la liste non encore confirmée.
      *
+     * @param array $invite Ligne de la liste correspondant au jeton du lien
      * @return array{0: array<string>, 1: array} [erreurs, données]
      */
-    public function validate(array $payload, I18n $t): array
+    public function validate(array $payload, I18n $t, GuestList $list, array $invite): array
     {
         $errors = [];
         $guests = [];
+        $used   = [];
 
         $raw = $payload['guests'] ?? [];
         if (!is_array($raw)) {
             $raw = [];
         }
-        $raw = array_slice($raw, 0, self::MAX_GUESTS);
+        $raw = array_slice(array_values($raw), 0, self::MAX_GUESTS);
 
-        foreach ($raw as $entry) {
+        foreach ($raw as $position => $entry) {
             if (!is_array($entry)) {
                 continue;
             }
@@ -39,12 +43,36 @@ final class Rsvp
             $isChild   = filter_var($entry['is_child'] ?? false, FILTER_VALIDATE_BOOL);
             $age       = null;
 
-            if ($firstname === '' && $lastname === '') {
-                continue; // ligne laissée vide : on l'ignore
+            if ($position === 0) {
+                $person = $invite; // identité imposée par le lien d'invitation
+            } else {
+                if ($firstname === '' && $lastname === '') {
+                    continue; // ligne laissée vide : on l'ignore
+                }
+                if ($firstname === '' || $lastname === '') {
+                    $errors['names'] = $t->get('rsvp.error_names');
+                    continue;
+                }
+                $person = $list->findByToken($this->clean($entry['token'] ?? '', 40))
+                    ?? $list->findByName($firstname, $lastname);
+
+                if ($person === null) {
+                    $errors['unknown'] = $t->get('rsvp.error_unknown', trim($firstname . ' ' . $lastname));
+                    continue;
+                }
             }
-            if ($firstname === '' || $lastname === '') {
-                $errors['names'] = $t->get('rsvp.error_names');
+
+            $fullName = trim($person['firstname'] . ' ' . $person['lastname']);
+
+            if (isset($used[$person['token']])) {
+                $errors['duplicate'] = $t->get('rsvp.error_duplicate', $fullName);
+                continue;
             }
+            if ($this->findByInvite($person['token']) !== null) {
+                $errors['already'] = $t->get('rsvp.error_already', $fullName);
+                continue;
+            }
+
             if ($isChild) {
                 $age = filter_var($entry['age'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 17]]);
                 if ($age === false) {
@@ -53,16 +81,18 @@ final class Rsvp
                 }
             }
 
+            $used[$person['token']] = true;
             $guests[] = [
-                'firstname' => $firstname,
-                'lastname'  => $lastname,
+                'token'     => $person['token'],
+                'firstname' => $person['firstname'],
+                'lastname'  => $person['lastname'],
                 'allergens' => $allergens,
                 'is_child'  => $isChild,
                 'age'       => $age,
             ];
         }
 
-        if ($guests === []) {
+        if ($guests === [] && $errors === []) {
             $errors['names'] = $t->get('rsvp.error_names');
         }
 
@@ -73,6 +103,8 @@ final class Rsvp
 
         $data = [
             'token'      => bin2hex(random_bytes(16)),
+            'invite'     => $invite['token'],
+            'guests_tokens' => array_keys($used),
             'created_at' => (new DateTimeImmutable('now', new DateTimeZone('Europe/Paris')))->format(DateTimeInterface::ATOM),
             'locale'     => $t->locale,
             'email'      => $email,
@@ -87,9 +119,20 @@ final class Rsvp
     {
         $file = $this->storageDir . '/' . $data['token'] . '.json';
         $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-        if ($json === false || file_put_contents($file, $json, LOCK_EX) === false) {
+        // L'écriture est silencieuse : un dossier non inscriptible doit produire une
+        // réponse JSON propre, pas une alerte PHP au milieu du flux.
+        if ($json === false || @file_put_contents($file, $json, LOCK_EX) === false) {
+            error_log('[RSVP] Écriture impossible dans ' . $file . ' — vérifiez les droits du dossier var/rsvp');
             return false;
         }
+        foreach ($data['guests_tokens'] ?? [] as $inviteToken) {
+            $dir = $this->storageDir . '/tokens';
+            if (!is_dir($dir)) {
+                @mkdir($dir, 0775, true);
+            }
+            @file_put_contents($dir . '/' . $this->safeToken($inviteToken) . '.json', json_encode(['record' => $data['token']]), LOCK_EX);
+        }
+
         @file_put_contents(
             $this->storageDir . '/index.jsonl',
             json_encode([
@@ -116,6 +159,27 @@ final class Rsvp
         $data = json_decode((string) file_get_contents($file), true);
 
         return is_array($data) ? $data : null;
+    }
+
+    /** Réponse déjà enregistrée pour ce jeton d'invitation (personne déjà confirmée) ? */
+    public function findByInvite(?string $inviteToken): ?array
+    {
+        $safe = $this->safeToken((string) $inviteToken);
+        if ($safe === '') {
+            return null;
+        }
+        $pointer = $this->storageDir . '/tokens/' . $safe . '.json';
+        if (!is_readable($pointer)) {
+            return null;
+        }
+        $data = json_decode((string) file_get_contents($pointer), true);
+
+        return is_array($data) ? $this->find($data['record'] ?? null) : null;
+    }
+
+    private function safeToken(string $token): string
+    {
+        return (string) preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($token)));
     }
 
     /** Dépose le cookie qui verrouille l'accès au formulaire. */
