@@ -195,7 +195,12 @@ switch ($command) {
     case 'liens':
         $site = site_url($root);
         foreach (selection(new GuestList($csv), $token) as $guest) {
-            printf("%-28s %s\n", trim($guest['firstname'] . ' ' . $guest['lastname']), invitation($guest, $site, $config, $root)['link']);
+            $name = trim($guest['firstname'] . ' ' . $guest['lastname']);
+            if (GuestList::isChild($guest)) {
+                printf("%-28s (enfant — déclaré par ses parents)\n", $name);
+                continue;
+            }
+            printf("%-28s %s\n", $name, invitation($guest, $site, $config, $root)['link']);
         }
         break;
 
@@ -210,7 +215,13 @@ switch ($command) {
 
         $rows = [['email', 'prenom', 'nom', 'langue', 'sujet', 'lien']];
         $done = 0;
+        $kids = [];
         foreach (selection(new GuestList($csv), $token) as $guest) {
+            // Les enfants sont déclarés par leurs parents : pas d'invitation séparée.
+            if (GuestList::isChild($guest)) {
+                $kids[] = trim($guest['firstname'] . ' ' . $guest['lastname']);
+                continue;
+            }
             $mail = invitation($guest, $site, $config, $root);
             file_put_contents($outDir . '/' . $guest['token'] . '.html', $mail['html']);
             if (filter_var($guest['email'], FILTER_VALIDATE_EMAIL)) {
@@ -229,6 +240,9 @@ switch ($command) {
         }
         fclose($handle);
         echo "$done invitation(s) préparée(s) dans $outDir\n";
+        if ($kids !== []) {
+            echo 'Enfants ignorés (déclarés par leurs parents) : ' . implode(', ', $kids) . "\n";
+        }
         break;
 
     // -----------------------------------------------------------------------
@@ -247,12 +261,17 @@ switch ($command) {
         echo 'Envoi : ' . dsn_label($dsn)
             . ($testInbox ? " — boîte de test locale, les invités ne recevront rien.\n\n" : "\n\n");
 
-        $mailer = new Mailer($dsn);
-        $sent   = 0;
+        $mailer  = new Mailer($dsn);
+        $sent    = 0;
         $skipped = [];
+        $kids    = [];
 
         foreach (selection(new GuestList($csv), $token) as $guest) {
             $name = trim($guest['firstname'] . ' ' . $guest['lastname']);
+            if (GuestList::isChild($guest)) {
+                $kids[] = $name;
+                continue;
+            }
             if (!filter_var($guest['email'], FILTER_VALIDATE_EMAIL)) {
                 $skipped[] = $name;
                 continue;
@@ -265,8 +284,11 @@ switch ($command) {
         }
 
         echo "\n$sent invitation(s) envoyée(s).\n";
+        if ($kids !== []) {
+            echo 'Enfants, invités via leurs parents : ' . implode(', ', $kids) . "\n";
+        }
         if ($skipped !== []) {
-            echo 'Sans adresse e-mail : ' . implode(', ', $skipped) . "\n";
+            echo 'ADULTES SANS ADRESSE — à inviter autrement : ' . implode(', ', $skipped) . "\n";
         }
         if ($mailer->errors() !== []) {
             echo 'Erreurs : ' . implode(' | ', $mailer->errors()) . "\n";
@@ -286,7 +308,7 @@ switch ($command) {
             $answer = $rsvp->findByInvite($guest['token']);
             $name   = trim($guest['firstname'] . ' ' . $guest['lastname']);
             if ($answer === null) {
-                $no[] = $name;
+                $no[] = $name . (GuestList::isChild($guest) ? ' (enfant)' : '');
                 continue;
             }
             $self = null;
@@ -314,5 +336,30 @@ switch ($command) {
         echo "\nSans réponse (" . count($no) . ") :\n";
         echo $no === [] ? "  —\n" : '  ' . implode("\n  ", $no) . "\n";
         echo "\nPrestations du 23/10 à 13:00 — coiffure : $hair · maquillage : $makeup\n";
+
+        // Un enfant ne reçoit pas d'invitation : il faut qu'un adulte de son foyer
+        // en reçoive une, sans quoi personne ne pourra le déclarer.
+        $orphans = [];
+        foreach ($list->all() as $guest) {
+            if (!GuestList::isChild($guest)) {
+                continue;
+            }
+            $reachable = false;
+            foreach ($list->groupMembers($guest) as $member) {
+                if (!GuestList::isChild($member) && filter_var($member['email'], FILTER_VALIDATE_EMAIL)) {
+                    $reachable = true;
+                    break;
+                }
+            }
+            if (!$reachable) {
+                $orphans[] = trim($guest['firstname'] . ' ' . $guest['lastname'])
+                    . ($guest['group'] === '' ? ' (aucun groupe)' : ' (groupe « ' . $guest['group'] . ' »)');
+            }
+        }
+        if ($orphans !== []) {
+            echo "\nÀ CORRIGER — enfants que personne ne peut déclarer,\n"
+                . "faute d'un adulte avec adresse e-mail dans leur groupe :\n  "
+                . implode("\n  ", $orphans) . "\n";
+        }
         break;
 }

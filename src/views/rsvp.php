@@ -23,8 +23,8 @@ if (!function_exists('render_guest_block')) {
         $lLast   = e($t->get('rsvp.lastname'));
         $lAller  = e($t->get('rsvp.allergens'));
         $phAller = e($t->get('rsvp.allergens_ph'));
-        $lChild  = e($t->get('rsvp.is_child'));
         $lAge    = e($t->get('rsvp.age'));
+        $lAgeHint= e($t->get('rsvp.age_hint'));
         $lRemove = e($t->get('rsvp.remove'));
         $lBeauty = e($t->get('rsvp.beauty_title'));
         $lHint   = e($t->get('rsvp.beauty_hint'));
@@ -34,6 +34,10 @@ if (!function_exists('render_guest_block')) {
         // Bloc coiffure & maquillage : masqué pour les hommes, et masqué tant qu'aucun
         // accompagnant n'a été choisi dans la liste déroulante (le JS le révèle).
         $offersBeauty = $index === 0 && ($options['beauty'] ?? true);
+        // L'âge n'est demandé qu'aux enfants ; pour un accompagnant, le JS l'ouvre au choix.
+        $isChild      = $index === 0 && ($options['child'] ?? false);
+        $ageHidden    = $isChild ? '' : ' hidden';
+        $ageDisabled  = $isChild ? '' : ' disabled';
         $beautyHidden = $offersBeauty ? '' : ' hidden';
         $beauty = <<<HTML
         <div class="field field--full beauty" data-beauty{$beautyHidden}>
@@ -86,7 +90,12 @@ HTML;
             <input type="text" id="allergens-{$i}" name="guests[{$i}][allergens]" maxlength="300"
                    placeholder="{$phAller}" data-i18n-attr="placeholder:rsvp.allergens_ph">
         </div>
-{$beauty}    </div>
+{$beauty}        <div class="field field--age" data-age{$ageHidden}>
+            <label for="age-{$i}" data-i18n="rsvp.age">{$lAge}</label>
+            <input type="number" id="age-{$i}" name="guests[{$i}][age]" min="0" max="17" step="1" inputmode="numeric"{$ageDisabled}>
+            <p class="field__hint" data-i18n="rsvp.age_hint">{$lAgeHint}</p>
+        </div>
+    </div>
 </fieldset>
 HTML;
         }
@@ -106,7 +115,8 @@ HTML;
                 $pl    = e($person['lastname']);
                 $label = e(trim($person['firstname'] . ' ' . $person['lastname']));
                 $offers   = GuestList::offersBeauty($person) ? '1' : '0';
-                $choices .= "<option value=\"{$value}\" data-first=\"{$pf}\" data-last=\"{$pl}\" data-offers=\"{$offers}\">{$label}</option>";
+                $child    = GuestList::isChild($person) ? '1' : '0';
+                $choices .= "<option value=\"{$value}\" data-first=\"{$pf}\" data-last=\"{$pl}\" data-offers=\"{$offers}\" data-child=\"{$child}\">{$label}</option>";
             }
             $picker   = <<<HTML
         <div class="field field--full">
@@ -145,17 +155,10 @@ HTML;
             <input type="text" id="allergens-{$i}" name="guests[{$i}][allergens]" maxlength="300"
                    placeholder="{$phAller}" data-i18n-attr="placeholder:rsvp.allergens_ph">
         </div>
-        <div class="field field--switch">
-            <span class="field__label" data-i18n="rsvp.is_child">{$lChild}</span>
-            <label class="switch" for="child-{$i}">
-                <input type="checkbox" id="child-{$i}" name="guests[{$i}][is_child]" value="1" data-child>
-                <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
-                <span class="sr-only" data-i18n="rsvp.is_child">{$lChild}</span>
-            </label>
-        </div>
-        <div class="field field--age" data-age hidden>
+        <div class="field field--age" data-age{$ageHidden}>
             <label for="age-{$i}" data-i18n="rsvp.age">{$lAge}</label>
-            <input type="number" id="age-{$i}" name="guests[{$i}][age]" min="0" max="17" step="1" inputmode="numeric" disabled>
+            <input type="number" id="age-{$i}" name="guests[{$i}][age]" min="0" max="17" step="1" inputmode="numeric"{$ageDisabled}>
+            <p class="field__hint" data-i18n="rsvp.age_hint">{$lAgeHint}</p>
         </div>
 {$beauty}    </div>
 </fieldset>
@@ -205,7 +208,11 @@ $contactMail = $config['mail']['to'][1] ?? ($config['mail']['to'][0] ?? '');
                 <p class="form__intro" data-i18n="rsvp.intro"><?= e($t->get('rsvp.intro')) ?></p>
 
                 <div id="guests">
-                    <?= render_guest_block($t, 0, ['identity' => $invite, 'beauty' => GuestList::offersBeauty($invite)]) ?>
+                    <?= render_guest_block($t, 0, [
+                        'identity' => $invite,
+                        'beauty'   => GuestList::offersBeauty($invite),
+                        'child'    => GuestList::isChild($invite),
+                    ]) ?>
                 </div>
 
                 <?php if ($companions !== []): ?>

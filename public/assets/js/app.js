@@ -415,6 +415,17 @@
         var picker = fieldset.querySelector('[data-companion]');
         var tokenInput = fieldset.querySelector('[data-token]');
         var beauty = fieldset.querySelector('[data-beauty]');
+        var ageField = fieldset.querySelector('[data-age]');
+        var ageInput = ageField ? ageField.querySelector('input') : null;
+
+        // L'âge n'est demandé qu'aux enfants, identifiés dans la liste des invités.
+        var showAge = function (visible) {
+            if (!ageField || !ageInput) { return; }
+            ageField.hidden = !visible;
+            ageInput.disabled = !visible;
+            ageInput.required = visible;
+            if (!visible) { ageInput.value = ''; }
+        };
 
         // Coiffure & maquillage : proposés sauf si la liste identifie un homme.
         var showBeauty = function (visible) {
@@ -438,25 +449,9 @@
                 lastInput.value = chosen ? (option.getAttribute('data-last') || '') : '';
                 if (tokenInput) { tokenInput.value = chosen ? picker.value : ''; }
                 showBeauty(chosen && option.getAttribute('data-offers') !== '0');
+                showAge(chosen && option.getAttribute('data-child') === '1');
+                if (chosen && option.getAttribute('data-child') === '1' && ageInput) { ageInput.focus(); }
             });
-        }
-
-        var toggle = fieldset.querySelector('[data-child]');
-        var ageField = fieldset.querySelector('[data-age]');
-        var ageInput = ageField ? ageField.querySelector('input') : null;
-
-        if (toggle && ageField && ageInput) {
-            var sync = function () {
-                ageField.hidden = !toggle.checked;
-                ageInput.disabled = !toggle.checked;
-                ageInput.required = toggle.checked;
-                if (!toggle.checked) { ageInput.value = ''; }
-            };
-            toggle.addEventListener('change', function () {
-                sync();
-                if (toggle.checked) { ageInput.focus(); }
-            });
-            sync();
         }
 
         var remove = fieldset.querySelector('[data-remove]');
@@ -551,13 +546,13 @@
                     var input = fieldset.querySelector(selector);
                     return input ? input.value.trim() : '';
                 };
-                var isChild = !!fieldset.querySelector('[data-child]:checked');
+                var ageBox = fieldset.querySelector('[data-age]');
+                var isChild = !!ageBox && ageBox.hidden === false;
                 var guest = {
                     token: value('input[name*="[token]"]'),
                     firstname: value('input[name*="[firstname]"]'),
                     lastname: value('input[name*="[lastname]"]'),
                     allergens: value('input[name*="[allergens]"]'),
-                    is_child: isChild,
                     age: isChild ? value('input[name*="[age]"]') : null,
                     hair: !!fieldset.querySelector('[data-hair]:checked'),
                     makeup: !!fieldset.querySelector('[data-makeup]:checked')

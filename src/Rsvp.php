@@ -40,7 +40,6 @@ final class Rsvp
             $firstname = $this->clean($entry['firstname'] ?? '', 60);
             $lastname  = $this->clean($entry['lastname'] ?? '', 60);
             $allergens = $this->clean($entry['allergens'] ?? '', 300);
-            $isChild   = filter_var($entry['is_child'] ?? false, FILTER_VALIDATE_BOOL);
             $age       = null;
 
             if ($position === 0) {
@@ -62,6 +61,8 @@ final class Rsvp
                 }
             }
 
+            // Enfant ou non : c'est la liste qui fait foi, jamais le formulaire.
+            $isChild  = GuestList::isChild($person);
             $fullName = trim($person['firstname'] . ' ' . $person['lastname']);
 
             if (isset($used[$person['token']])) {

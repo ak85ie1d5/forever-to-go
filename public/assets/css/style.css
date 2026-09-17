@@ -500,7 +500,9 @@ h1, h2, h3 { font-weight: 400; margin: 0; line-height: 1.18; }
 .field input[aria-invalid="true"] { border-bottom-color: #B4695B; }
 
 .field--switch { flex-direction: row; align-items: center; gap: .9rem; display: flex; }
+.field--age { grid-column: 1 / -1; }  /* la précision tient alors sur une ligne */
 .field--age input { max-width: 8rem; }
+.field__hint { margin: .35rem 0 0; font-size: .82rem; font-style: italic; color: var(--anthracite-doux); }
 
 /* Coiffure & maquillage */
 .beauty {

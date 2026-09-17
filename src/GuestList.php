@@ -9,8 +9,9 @@
  *   prenom  (obligatoire)
  *   nom     (obligatoire)
  *   email   (facultatif)  — pré-remplit le champ « votre e-mail » du formulaire
- *   genre   (facultatif)  — f/femme ou h/homme : conditionne l'offre coiffure & maquillage
- *                           (colonne absente ou vide : l'offre est proposée)
+ *   genre   (facultatif)  — f/femme, h/homme ou e/enfant. Détermine l'offre coiffure &
+ *                           maquillage (réservée aux femmes) et l'affichage du champ Âge
+ *                           (réservé aux enfants). Colonne vide : traité comme une adulte.
  *   groupe  (facultatif)  — regroupe un foyer : propose les proches à ajouter
  *   langue  (facultatif)  — fr ou ro : langue d'ouverture du site pour cet invité
  */
@@ -154,6 +155,7 @@ final class GuestList
         return match ($value[0]) {
             'f', 'w' => 'f',   // femme, féminin, female, woman
             'h', 'm' => 'm',   // homme, masculin, male
+            'e', 'c' => 'c',   // enfant, child, copil
             default  => '',
         };
     }
@@ -161,7 +163,13 @@ final class GuestList
     /** L'offre coiffure & maquillage est-elle proposée à cette personne ? */
     public static function offersBeauty(array $guest): bool
     {
-        return ($guest['gender'] ?? '') !== 'm';
+        return !in_array($guest['gender'] ?? '', ['m', 'c'], true);
+    }
+
+    /** S'agit-il d'un enfant ? Seul son âge nous manque alors. */
+    public static function isChild(array $guest): bool
+    {
+        return ($guest['gender'] ?? '') === 'c';
     }
 
     /** Clé de comparaison d'un nom : insensible à la casse, aux accents et à la ponctuation. */
