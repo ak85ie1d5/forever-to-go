@@ -278,17 +278,29 @@
     function bindGuest(fieldset) {
         var picker = fieldset.querySelector('[data-companion]');
         var tokenInput = fieldset.querySelector('[data-token]');
+        var beauty = fieldset.querySelector('[data-beauty]');
+
+        // Coiffure & maquillage : proposés sauf si la liste identifie un homme.
+        var showBeauty = function (visible) {
+            if (!beauty) { return; }
+            beauty.hidden = !visible;
+            if (!visible) {
+                Array.prototype.forEach.call(beauty.querySelectorAll('input[type="checkbox"]'), function (box) {
+                    box.checked = false;
+                });
+            }
+        };
+
         if (picker) {
             var firstInput = fieldset.querySelector('input[name*="[firstname]"]');
             var lastInput = fieldset.querySelector('input[name*="[lastname]"]');
             picker.addEventListener('change', function () {
                 var option = picker.options[picker.selectedIndex];
-                var free = picker.value === '__other__';
-                firstInput.value = free ? '' : (option.getAttribute('data-first') || '');
-                lastInput.value = free ? '' : (option.getAttribute('data-last') || '');
-                firstInput.readOnly = lastInput.readOnly = !free;
-                if (tokenInput) { tokenInput.value = free ? '' : picker.value; }
-                if (free) { firstInput.focus(); }
+                var chosen = picker.value !== '';
+                firstInput.value = chosen ? (option.getAttribute('data-first') || '') : '';
+                lastInput.value = chosen ? (option.getAttribute('data-last') || '') : '';
+                if (tokenInput) { tokenInput.value = chosen ? picker.value : ''; }
+                showBeauty(chosen && option.getAttribute('data-offers') !== '0');
             });
         }
 
@@ -394,6 +406,10 @@
             var invalid = null;
 
             Array.prototype.forEach.call(list.querySelectorAll('[data-guest]'), function (fieldset) {
+                var picker = fieldset.querySelector('[data-companion]');
+                if (picker && picker.value === '') {
+                    return; // aucun accompagnant sélectionné dans ce bloc
+                }
                 var value = function (selector) {
                     var input = fieldset.querySelector(selector);
                     return input ? input.value.trim() : '';
@@ -405,7 +421,9 @@
                     lastname: value('input[name*="[lastname]"]'),
                     allergens: value('input[name*="[allergens]"]'),
                     is_child: isChild,
-                    age: isChild ? value('input[name*="[age]"]') : null
+                    age: isChild ? value('input[name*="[age]"]') : null,
+                    hair: !!fieldset.querySelector('[data-hair]:checked'),
+                    makeup: !!fieldset.querySelector('[data-makeup]:checked')
                 };
 
                 Array.prototype.forEach.call(fieldset.querySelectorAll('input, select'), function (input) {

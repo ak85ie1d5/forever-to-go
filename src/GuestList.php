@@ -9,12 +9,14 @@
  *   prenom  (obligatoire)
  *   nom     (obligatoire)
  *   email   (facultatif)  — pré-remplit le champ « votre e-mail » du formulaire
+ *   genre   (facultatif)  — f/femme ou h/homme : conditionne l'offre coiffure & maquillage
+ *                           (colonne absente ou vide : l'offre est proposée)
  *   groupe  (facultatif)  — regroupe un foyer : propose les proches à ajouter
  *   langue  (facultatif)  — fr ou ro : langue d'ouverture du site pour cet invité
  */
 final class GuestList
 {
-    /** @var array<string, array{token:string,firstname:string,lastname:string,email:string,group:string,locale:string}> */
+    /** @var array<string, array{token:string,firstname:string,lastname:string,email:string,gender:string,group:string,locale:string}> */
     private array $byToken = [];
     /** @var array<string, string> clé normalisée du nom => jeton */
     private array $byName = [];
@@ -24,6 +26,7 @@ final class GuestList
         'firstname' => ['prenom', 'prénom', 'firstname', 'first_name', 'first'],
         'lastname'  => ['nom', 'lastname', 'last_name', 'last', 'famille'],
         'email'     => ['email', 'mail', 'courriel', 'adresse_mail', 'e_mail'],
+        'gender'    => ['genre', 'sexe', 'gender', 'sex'],
         'group'     => ['groupe', 'group', 'foyer', 'famille_id', 'household'],
         'locale'    => ['langue', 'locale', 'lang', 'language'],
     ];
@@ -77,6 +80,7 @@ final class GuestList
                 'firstname' => trim((string) ($row[$map['firstname']] ?? '')),
                 'lastname'  => trim((string) ($row[$map['lastname']] ?? '')),
                 'email'     => isset($map['email']) ? trim((string) ($row[$map['email']] ?? '')) : '',
+                'gender'    => isset($map['gender']) ? self::gender((string) ($row[$map['gender']] ?? '')) : '',
                 'group'     => isset($map['group']) ? trim((string) ($row[$map['group']] ?? '')) : '',
                 'locale'    => isset($map['locale']) ? strtolower(trim((string) ($row[$map['locale']] ?? ''))) : '',
             ];
@@ -134,6 +138,30 @@ final class GuestList
         }
 
         return $others;
+    }
+
+    /**
+     * Genre normalisé : 'f', 'm', ou '' si l'information n'est pas renseignée.
+     * Une valeur absente ne prive personne de l'offre — elle reste simplement proposée.
+     */
+    public static function gender(string $value): string
+    {
+        $value = self::slug($value);
+        if ($value === '') {
+            return '';
+        }
+
+        return match ($value[0]) {
+            'f', 'w' => 'f',   // femme, féminin, female, woman
+            'h', 'm' => 'm',   // homme, masculin, male
+            default  => '',
+        };
+    }
+
+    /** L'offre coiffure & maquillage est-elle proposée à cette personne ? */
+    public static function offersBeauty(array $guest): bool
+    {
+        return ($guest['gender'] ?? '') !== 'm';
     }
 
     /** Clé de comparaison d'un nom : insensible à la casse, aux accents et à la ponctuation. */

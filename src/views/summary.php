@@ -46,6 +46,12 @@ foreach ($dates as $code => $value) {
                     <?php else: ?>
                         <span class="tag" data-i18n="rsvp.no_child"><?= e($current->get('rsvp.no_child')) ?></span>
                     <?php endif; ?>
+                    <?php if (!empty($guest['hair'])): ?>
+                        <span class="tag tag--beauty" data-i18n="rsvp.hair"><?= e($current->get('rsvp.hair')) ?></span>
+                    <?php endif; ?>
+                    <?php if (!empty($guest['makeup'])): ?>
+                        <span class="tag tag--beauty" data-i18n="rsvp.makeup"><?= e($current->get('rsvp.makeup')) ?></span>
+                    <?php endif; ?>
                 </p>
                 <p class="summary__allergens">
                     <span class="summary__label" data-i18n="summary.allergens"><?= e($current->get('summary.allergens')) ?></span>

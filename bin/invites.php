@@ -280,6 +280,8 @@ switch ($command) {
         $rsvp = new Rsvp($config['storage_dir']);
         $yes  = [];
         $no   = [];
+        $hair = 0;
+        $makeup = 0;
         foreach ($list->all() as $guest) {
             $answer = $rsvp->findByInvite($guest['token']);
             $name   = trim($guest['firstname'] . ' ' . $guest['lastname']);
@@ -293,9 +295,17 @@ switch ($command) {
                     $self = $person;
                 }
             }
+            $hair   += $self && !empty($self['hair']) ? 1 : 0;
+            $makeup += $self && !empty($self['makeup']) ? 1 : 0;
+
             $detail = $self && !empty($self['is_child']) ? 'enfant' : 'adulte';
             if ($self && trim((string) $self['allergens']) !== '') {
                 $detail .= ', ' . $self['allergens'];
+            }
+            foreach (['hair' => 'coiffure', 'makeup' => 'maquillage'] as $key => $label) {
+                if ($self && !empty($self[$key])) {
+                    $detail .= ', ' . $label;
+                }
             }
             $yes[] = sprintf('%-28s %s  (%s)', $name, substr((string) $answer['created_at'], 0, 10), $detail);
         }
@@ -303,5 +313,6 @@ switch ($command) {
         echo $yes === [] ? "  —\n" : '  ' . implode("\n  ", $yes) . "\n";
         echo "\nSans réponse (" . count($no) . ") :\n";
         echo $no === [] ? "  —\n" : '  ' . implode("\n  ", $no) . "\n";
+        echo "\nPrestations du 23/10 à 13:00 — coiffure : $hair · maquillage : $makeup\n";
         break;
 }

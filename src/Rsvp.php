@@ -81,6 +81,9 @@ final class Rsvp
                 }
             }
 
+            // Coiffure et maquillage : proposés aux invitées, l'autorisation vient de la liste.
+            $mayBeautify = GuestList::offersBeauty($person);
+
             $used[$person['token']] = true;
             $guests[] = [
                 'token'     => $person['token'],
@@ -89,6 +92,8 @@ final class Rsvp
                 'allergens' => $allergens,
                 'is_child'  => $isChild,
                 'age'       => $age,
+                'hair'      => $mayBeautify && filter_var($entry['hair'] ?? false, FILTER_VALIDATE_BOOL),
+                'makeup'    => $mayBeautify && filter_var($entry['makeup'] ?? false, FILTER_VALIDATE_BOOL),
             ];
         }
 
@@ -234,10 +239,15 @@ final class Rsvp
             $type = $g['is_child']
                 ? e($t->get('rsvp.child')) . ($g['age'] !== null ? ' — ' . (int) $g['age'] . ' ' . e($t->get('rsvp.years')) : '')
                 : e($t->get('rsvp.no_child'));
+            $beauty = array_filter([
+                !empty($g['hair']) ? $t->get('rsvp.hair') : null,
+                !empty($g['makeup']) ? $t->get('rsvp.makeup') : null,
+            ]);
             $rows .= '<tr>'
                 . '<td style="padding:10px 14px;border-bottom:1px solid #EADFCB;">' . e(trim($g['firstname'] . ' ' . $g['lastname'])) . '</td>'
                 . '<td style="padding:10px 14px;border-bottom:1px solid #EADFCB;">' . $type . '</td>'
                 . '<td style="padding:10px 14px;border-bottom:1px solid #EADFCB;">' . ($g['allergens'] !== '' ? e($g['allergens']) : '—') . '</td>'
+                . '<td style="padding:10px 14px;border-bottom:1px solid #EADFCB;">' . ($beauty !== [] ? e(implode(' + ', $beauty)) : '—') . '</td>'
                 . '</tr>';
         }
         $date = new DateTimeImmutable($data['created_at']);
@@ -250,7 +260,8 @@ final class Rsvp
             . '<table style="width:100%;border-collapse:collapse;background:#FFFEF9;border:1px solid #EADFCB;">'
             . '<tr style="background:#EADFCB;"><th align="left" style="padding:10px 14px;font-weight:500;">Invité</th>'
             . '<th align="left" style="padding:10px 14px;font-weight:500;">Type</th>'
-            . '<th align="left" style="padding:10px 14px;font-weight:500;">Allergènes</th></tr>'
+            . '<th align="left" style="padding:10px 14px;font-weight:500;">Allergènes</th>'
+            . '<th align="left" style="padding:10px 14px;font-weight:500;">Coiffure / Maquillage (13:00)</th></tr>'
             . $rows . '</table>'
             . ($data['email'] !== '' ? '<p style="margin:20px 0 0;">E-mail de contact : <a href="mailto:' . e($data['email']) . '" style="color:#B08D57;">' . e($data['email']) . '</a></p>' : '')
             . '<p style="margin:28px 0 0;font-size:12px;color:#9a9288;">Référence : ' . e($data['token']) . '</p>'
@@ -264,8 +275,13 @@ final class Rsvp
             $type = $g['is_child']
                 ? $t->get('rsvp.child') . ($g['age'] !== null ? ' (' . (int) $g['age'] . ' ' . $t->get('rsvp.years') . ')' : '')
                 : $t->get('rsvp.no_child');
+            $beauty = array_filter([
+                !empty($g['hair']) ? $t->get('rsvp.hair') : null,
+                !empty($g['makeup']) ? $t->get('rsvp.makeup') : null,
+            ]);
             $lines[] = '- ' . trim($g['firstname'] . ' ' . $g['lastname']) . ' [' . $type . ']'
-                . ($g['allergens'] !== '' ? ' — ' . $t->get('summary.allergens') . ' : ' . $g['allergens'] : '');
+                . ($g['allergens'] !== '' ? ' — ' . $t->get('summary.allergens') . ' : ' . $g['allergens'] : '')
+                . ($beauty !== [] ? ' — ' . $t->get('rsvp.beauty_title') . ' : ' . implode(' + ', $beauty) : '');
         }
         $lines[] = '';
         $lines[] = 'Total : ' . count($data['guests']) . ' personne(s)';

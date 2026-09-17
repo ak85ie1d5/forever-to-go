@@ -26,6 +26,33 @@ if (!function_exists('render_guest_block')) {
         $lChild  = e($t->get('rsvp.is_child'));
         $lAge    = e($t->get('rsvp.age'));
         $lRemove = e($t->get('rsvp.remove'));
+        $lBeauty = e($t->get('rsvp.beauty_title'));
+        $lHint   = e($t->get('rsvp.beauty_hint'));
+        $lHair   = e($t->get('rsvp.hair'));
+        $lMakeup = e($t->get('rsvp.makeup'));
+
+        // Bloc coiffure & maquillage : masqué pour les hommes, et masqué tant qu'aucun
+        // accompagnant n'a été choisi dans la liste déroulante (le JS le révèle).
+        $offersBeauty = $index === 0 && ($options['beauty'] ?? true);
+        $beautyHidden = $offersBeauty ? '' : ' hidden';
+        $beauty = <<<HTML
+        <div class="field field--full beauty" data-beauty{$beautyHidden}>
+            <p class="beauty__title" data-i18n="rsvp.beauty_title">{$lBeauty}</p>
+            <div class="beauty__options">
+                <label class="switch switch--line" for="hair-{$i}">
+                    <input type="checkbox" id="hair-{$i}" name="guests[{$i}][hair]" value="1" data-hair>
+                    <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                    <span class="switch__text" data-i18n="rsvp.hair">{$lHair}</span>
+                </label>
+                <label class="switch switch--line" for="makeup-{$i}">
+                    <input type="checkbox" id="makeup-{$i}" name="guests[{$i}][makeup]" value="1" data-makeup>
+                    <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+                    <span class="switch__text" data-i18n="rsvp.makeup">{$lMakeup}</span>
+                </label>
+            </div>
+            <p class="beauty__hint" data-i18n="rsvp.beauty_hint">{$lHint}</p>
+        </div>
+HTML;
 
         $isPrimary = $index === 0;
         $identity  = $options['identity'] ?? [];
@@ -59,7 +86,7 @@ if (!function_exists('render_guest_block')) {
             <input type="text" id="allergens-{$i}" name="guests[{$i}][allergens]" maxlength="300"
                    placeholder="{$phAller}" data-i18n-attr="placeholder:rsvp.allergens_ph">
         </div>
-    </div>
+{$beauty}    </div>
 </fieldset>
 HTML;
         }
@@ -67,28 +94,26 @@ HTML;
         // --- Accompagnant : choisi dans le foyer, ou saisi puis vérifié -----------
         $companions = $options['companions'] ?? [];
         $picker     = '';
-        $readonly   = '';
+        $readonly   = ' readonly';
 
         if ($companions !== []) {
             $lWho    = e($t->get('rsvp.companion'));
             $lChoose = e($t->get('rsvp.choose'));
-            $lOther  = e($t->get('rsvp.other'));
             $choices = '';
             foreach ($companions as $person) {
                 $value = e($person['token']);
                 $pf    = e($person['firstname']);
                 $pl    = e($person['lastname']);
                 $label = e(trim($person['firstname'] . ' ' . $person['lastname']));
-                $choices .= "<option value=\"{$value}\" data-first=\"{$pf}\" data-last=\"{$pl}\">{$label}</option>";
+                $offers   = GuestList::offersBeauty($person) ? '1' : '0';
+                $choices .= "<option value=\"{$value}\" data-first=\"{$pf}\" data-last=\"{$pl}\" data-offers=\"{$offers}\">{$label}</option>";
             }
-            $readonly = ' readonly';
             $picker   = <<<HTML
         <div class="field field--full">
             <label for="who-{$i}" data-i18n="rsvp.companion">{$lWho}</label>
             <select id="who-{$i}" data-companion>
                 <option value="" data-i18n="rsvp.choose">{$lChoose}</option>
                 {$choices}
-                <option value="__other__" data-i18n="rsvp.other">{$lOther}</option>
             </select>
         </div>
 
@@ -132,7 +157,7 @@ HTML;
             <label for="age-{$i}" data-i18n="rsvp.age">{$lAge}</label>
             <input type="number" id="age-{$i}" name="guests[{$i}][age]" min="0" max="17" step="1" inputmode="numeric" disabled>
         </div>
-    </div>
+{$beauty}    </div>
 </fieldset>
 HTML;
     }
@@ -176,17 +201,19 @@ $contactMail = $config['mail']['to'][1] ?? ($config['mail']['to'][0] ?? '');
         <?php else: ?>
             <form class="form" id="rsvp-form" method="post" action="/?i=<?= e($invite['token']) ?>" novalidate
                   data-invite="<?= e($invite['token']) ?>"
-                  data-max="<?= e((string) (1 + ($companions === [] ? Rsvp::MAX_GUESTS - 1 : count($companions)))) ?>">
+                  data-max="<?= e((string) (1 + count($companions))) ?>">
                 <p class="form__intro" data-i18n="rsvp.intro"><?= e($t->get('rsvp.intro')) ?></p>
 
                 <div id="guests">
-                    <?= render_guest_block($t, 0, ['identity' => $invite]) ?>
+                    <?= render_guest_block($t, 0, ['identity' => $invite, 'beauty' => GuestList::offersBeauty($invite)]) ?>
                 </div>
 
-                <button type="button" class="btn btn--ghost btn--add" id="add-guest">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-                    <span data-i18n="rsvp.add"><?= e($t->get('rsvp.add')) ?></span>
-                </button>
+                <?php if ($companions !== []): ?>
+                    <button type="button" class="btn btn--ghost btn--add" id="add-guest">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                        <span data-i18n="rsvp.add"><?= e($t->get('rsvp.add')) ?></span>
+                    </button>
+                <?php endif; ?>
 
                 <div class="field field--full">
                     <label for="contact-email" data-i18n="rsvp.email"><?= e($t->get('rsvp.email')) ?></label>
@@ -207,7 +234,9 @@ $contactMail = $config['mail']['to'][1] ?? ($config['mail']['to'][0] ?? '');
                 </button>
             </form>
 
-            <template id="guest-template"><?= render_guest_block($t, -1, ['companions' => $companions]) ?></template>
+            <?php if ($companions !== []): ?>
+                <template id="guest-template"><?= render_guest_block($t, -1, ['companions' => $companions]) ?></template>
+            <?php endif; ?>
         <?php endif; ?>
     </div>
 </section>

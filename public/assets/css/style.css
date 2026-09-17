@@ -502,6 +502,27 @@ h1, h2, h3 { font-weight: 400; margin: 0; line-height: 1.18; }
 .field--switch { flex-direction: row; align-items: center; gap: .9rem; display: flex; }
 .field--age input { max-width: 8rem; }
 
+/* Coiffure & maquillage */
+.beauty {
+    border: 1px solid var(--champagne); background: rgba(234, 223, 203, .2);
+    padding: 1rem 1.1rem; display: grid; gap: .8rem;
+}
+.beauty__title {
+    margin: 0; font-size: .68rem; letter-spacing: .24em; text-transform: uppercase; color: var(--or);
+}
+.beauty__options { display: flex; flex-wrap: wrap; gap: 1.4rem; }
+.beauty__hint {
+    margin: 0; font-size: .92rem; color: var(--anthracite-doux);
+    display: flex; align-items: flex-start; gap: .5rem;
+    padding-top: .7rem; border-top: 1px solid var(--champagne);
+}
+.beauty__hint::before {
+    content: '\23F1'; /* chronomètre */
+    color: var(--or); font-size: .95rem; line-height: 1.5; flex: none;
+}
+.switch--line { gap: .7rem; }
+.switch__text { font-size: 1rem; color: var(--anthracite); }
+
 /* Champs numériques : on masque les flèches natives des navigateurs. */
 .field input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .field input[type="number"]::-webkit-outer-spin-button,
@@ -588,6 +609,7 @@ h1, h2, h3 { font-weight: 400; margin: 0; line-height: 1.18; }
     background: rgba(234, 223, 203, .3);
 }
 .tag--child { background: var(--champagne); color: var(--anthracite); }
+.tag--beauty { background: rgba(176, 141, 87, .12); border-color: var(--or); }
 .summary__allergens { margin: 0; color: var(--anthracite-doux); font-size: .95rem; display: flex; gap: .5rem; flex-wrap: wrap; }
 .summary__label { font-size: .66rem; letter-spacing: .2em; text-transform: uppercase; color: var(--anthracite-doux); align-self: center; }
 .summary__contact { margin: 1rem 0 .4rem; font-size: .92rem; color: var(--anthracite-doux); font-style: italic; }
