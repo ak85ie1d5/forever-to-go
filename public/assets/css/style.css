@@ -538,18 +538,66 @@ h1, h2, h3 { font-weight: 400; margin: 0; line-height: 1.18; }
 }
 .field input[readonly]:focus { background: none; border-bottom-color: var(--nude); }
 
-/* Liste déroulante « qui vous accompagne ? » */
+/* Liste déroulante « qui vous accompagne ? » — sans JavaScript, on garde le
+   contrôle natif ; le JS le remplace par le menu dessiné ci-dessous. */
 .field select {
     font: inherit; font-size: 1.02rem; color: var(--anthracite);
     background: transparent; border: 0; border-bottom: 1px solid var(--nude);
-    padding: .5rem .2rem; border-radius: 0; appearance: none; -webkit-appearance: none;
-    background-image: linear-gradient(45deg, transparent 50%, var(--or) 50%), linear-gradient(135deg, var(--or) 50%, transparent 50%);
-    background-position: calc(100% - 12px) 1.15em, calc(100% - 7px) 1.15em;
-    background-size: 5px 5px, 5px 5px;
-    background-repeat: no-repeat;
-    transition: border-color .3s ease;
+    padding: .5rem .2rem; border-radius: 0;
 }
 .field select:focus { outline: none; border-bottom-color: var(--or); }
+
+/* Menu déroulant dessiné */
+.picker { position: relative; }
+.picker__button {
+    width: 100%; font: inherit; font-size: 1.02rem; text-align: left; color: var(--anthracite);
+    background: transparent; border: 0; border-bottom: 1px solid var(--nude);
+    padding: .55rem .2rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+    transition: border-color .3s ease, background .3s ease;
+}
+.picker__button[data-empty="true"] { color: #B7AE9F; font-style: italic; font-size: .95rem; }
+.picker__button:hover { border-bottom-color: var(--or-clair); }
+.picker__button:focus-visible { outline: none; border-bottom-color: var(--or); }
+.picker.is-open .picker__button {
+    border-bottom-color: var(--or);
+    background: linear-gradient(180deg, transparent 70%, rgba(234, 223, 203, .35));
+}
+
+.picker__chevron {
+    width: 8px; height: 8px; flex: none; margin-bottom: 3px;
+    border-right: 1px solid var(--or); border-bottom: 1px solid var(--or);
+    transform: rotate(45deg); transition: transform .35s cubic-bezier(.22,.8,.3,1);
+}
+.picker.is-open .picker__chevron { transform: rotate(-135deg) translate(-3px, -3px); }
+
+.picker__list {
+    position: absolute; z-index: 30; left: -.5rem; right: -.5rem; top: calc(100% + .55rem);
+    margin: 0; padding: .35rem; list-style: none;
+    background: var(--ivoire); border: 1px solid var(--champagne);
+    box-shadow: var(--shadow-card);
+    max-height: 15rem; overflow-y: auto;
+    opacity: 0; transform: translateY(-8px); pointer-events: none;
+    transition: opacity .28s ease, transform .28s cubic-bezier(.22,.8,.3,1);
+}
+.picker__list::before {
+    content: ''; position: absolute; inset: 4px; border: 1px solid rgba(201, 174, 124, .25);
+    pointer-events: none;
+}
+.picker.is-open .picker__list { opacity: 1; transform: none; pointer-events: auto; }
+
+.picker__option {
+    position: relative; padding: .62rem .85rem; cursor: pointer; font-size: 1rem;
+    color: var(--anthracite-doux); display: flex; align-items: center; gap: .6rem;
+    transition: background .2s ease, color .2s ease;
+}
+.picker__option:hover, .picker__option.is-active { background: var(--champagne-pale); color: var(--anthracite); }
+.picker__option[aria-selected="true"] { color: var(--or); }
+.picker__option[aria-selected="true"]::after {
+    content: '\2713'; margin-left: auto; font-size: .85rem; color: var(--or);
+}
+.picker__option--empty { font-style: italic; color: #B7AE9F; font-size: .95rem; }
+.picker__option--empty[aria-selected="true"]::after { content: none; } /* pas de coche sur l'invite de choix */
 
 /* Accès réservé aux invités (pas de jeton valide) */
 .gate { text-align: center; display: grid; gap: .7rem; justify-items: center; }

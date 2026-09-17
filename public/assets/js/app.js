@@ -81,7 +81,10 @@
             });
         });
 
-        if (!scope) { renderCountdown(); }
+        if (!scope) {
+            renderCountdown();
+            syncPickers();
+        }
     }
 
     Array.prototype.forEach.call(document.querySelectorAll('.lang__btn'), function (btn) {
@@ -270,6 +273,139 @@
     }, { passive: true });
     onScroll();
 
+
+    /* --------------------------------------------------------------------- */
+    /* Menu déroulant dessiné (remplace le contrôle natif du navigateur)      */
+    /* --------------------------------------------------------------------- */
+    function enhanceSelect(select) {
+        if (!select || select.getAttribute('data-enhanced') === '1') { return; }
+        select.setAttribute('data-enhanced', '1');
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'picker';
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
+        select.classList.add('sr-only');
+        select.setAttribute('tabindex', '-1');
+        select.setAttribute('aria-hidden', 'true');
+
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'picker__button';
+        button.setAttribute('aria-haspopup', 'listbox');
+        button.setAttribute('aria-expanded', 'false');
+
+        var text = document.createElement('span');
+        var chevron = document.createElement('span');
+        chevron.className = 'picker__chevron';
+        chevron.setAttribute('aria-hidden', 'true');
+        button.appendChild(text);
+        button.appendChild(chevron);
+
+        var list = document.createElement('ul');
+        list.className = 'picker__list';
+        list.setAttribute('role', 'listbox');
+
+        wrapper.appendChild(button);
+        wrapper.appendChild(list);
+
+        var field = select.closest('.field');
+        var label = field ? field.querySelector('label') : null;
+        if (label) {
+            button.setAttribute('aria-label', label.textContent.trim());
+            label.addEventListener('click', function (event) { event.preventDefault(); open(); });
+        }
+
+        function sync() {
+            var option = select.options[select.selectedIndex];
+            var empty = !select.value;
+            text.textContent = option ? option.textContent : '';
+            button.setAttribute('data-empty', empty ? 'true' : 'false');
+        }
+
+        function render() {
+            list.innerHTML = '';
+            Array.prototype.forEach.call(select.options, function (option, index) {
+                var item = document.createElement('li');
+                item.className = 'picker__option' + (option.value === '' ? ' picker__option--empty' : '');
+                item.setAttribute('role', 'option');
+                item.setAttribute('aria-selected', index === select.selectedIndex ? 'true' : 'false');
+                item.textContent = option.textContent;
+                item.addEventListener('click', function () { choose(index); });
+                list.appendChild(item);
+            });
+        }
+
+        function items() {
+            return list.querySelectorAll('.picker__option');
+        }
+
+        function highlight(index) {
+            Array.prototype.forEach.call(items(), function (item, position) {
+                item.classList.toggle('is-active', position === index);
+            });
+            var active = items()[index];
+            if (active && active.scrollIntoView) { active.scrollIntoView({ block: 'nearest' }); }
+        }
+
+        function choose(index) {
+            select.selectedIndex = index;
+            select.dispatchEvent(new Event('change'));
+            sync();
+            close();
+            button.focus();
+        }
+
+        function open() {
+            render();
+            wrapper.classList.add('is-open');
+            button.setAttribute('aria-expanded', 'true');
+            highlight(select.selectedIndex);
+        }
+
+        function close() {
+            wrapper.classList.remove('is-open');
+            button.setAttribute('aria-expanded', 'false');
+        }
+
+        function isOpen() {
+            return wrapper.classList.contains('is-open');
+        }
+
+        button.addEventListener('click', function () { isOpen() ? close() : open(); });
+
+        button.addEventListener('keydown', function (event) {
+            var current = Array.prototype.findIndex.call(items(), function (item) { return item.classList.contains('is-active'); });
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (!isOpen()) { open(); return; }
+                var next = current + (event.key === 'ArrowDown' ? 1 : -1);
+                highlight(Math.max(0, Math.min(items().length - 1, next)));
+            } else if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                isOpen() && current >= 0 ? choose(current) : open();
+            } else if (event.key === 'Escape') {
+                close();
+            } else if (event.key === 'Tab') {
+                close();
+            }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (isOpen() && !wrapper.contains(event.target)) { close(); }
+        });
+
+        wrapper.sync = sync;
+        sync();
+    }
+
+    /** Rafraîchit les libellés des menus après un changement de langue. */
+    function syncPickers() {
+        Array.prototype.forEach.call(document.querySelectorAll('.picker'), function (picker) {
+            if (typeof picker.sync === 'function') { picker.sync(); }
+        });
+    }
+
     /* --------------------------------------------------------------------- */
     /* Formulaire de confirmation                                             */
     /* --------------------------------------------------------------------- */
@@ -292,6 +428,7 @@
         };
 
         if (picker) {
+            enhanceSelect(picker);
             var firstInput = fieldset.querySelector('input[name*="[firstname]"]');
             var lastInput = fieldset.querySelector('input[name*="[lastname]"]');
             picker.addEventListener('change', function () {
