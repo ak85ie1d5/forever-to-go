@@ -32,9 +32,10 @@ $token   = $argv[2] ?? null;   // facultatif : restreint à un seul invité
  *   2. nom d'hôte du système via gethostname() — le seul disponible sous cron ou systemd,
  *      où HOSTNAME n'est pas exporté.
  *
- * $strict interdit un hôte inutilisable dans un e-mail (id de conteneur, localhost…).
+ * $strict interdit un hôte inutilisable dans un e-mail (id de conteneur, localhost…) ;
+ * $warn affiche un simple avertissement dans le cas contraire.
  */
-function site_url(string $root, bool $strict = false): string
+function site_url(string $root, bool $strict = false, bool $warn = true): string
 {
     $candidates = [
         env_get('HOSTNAME'),          // .env.local, puis variable d'environnement
@@ -73,7 +74,9 @@ function site_url(string $root, bool $strict = false): string
             fwrite(STDERR, $message);
             exit(1);
         }
-        fwrite(STDERR, "Attention — " . $message . "\n");
+        if ($warn) {
+            fwrite(STDERR, "Attention — " . $message . "\n");
+        }
     }
 
     return $url;
@@ -100,6 +103,24 @@ function invitation(array $guest, string $site, array $config, string $root): ar
     })($guest, $link, $site, $deadline, $contact, $template);
 
     return $mail + ['link' => $link, 'locale' => $locale, 'contact' => $contact];
+}
+
+/** DSN sans identifiants, pour l'affichage. */
+function dsn_label(string $dsn): string
+{
+    if ($dsn === '') {
+        return 'mail() du système';
+    }
+    $parts = parse_url($dsn);
+    if ($parts === false || !isset($parts['host'])) {
+        return '(DSN illisible)';
+    }
+    $label = ($parts['scheme'] ?? 'smtp') . '://';
+    if (isset($parts['user'])) {
+        $label .= $parts['user'] . ':***@';
+    }
+
+    return $label . $parts['host'] . (isset($parts['port']) ? ':' . $parts['port'] : '');
 }
 
 /** Les invités concernés : tous, ou celui dont le jeton est passé en paramètre. */
@@ -212,10 +233,21 @@ switch ($command) {
 
     // -----------------------------------------------------------------------
     case 'envoyer':
-        $site = site_url($root, true); // hôte public obligatoire : un envoi ne se rattrape pas
-        echo "Site : $site\n\n";
+        $dsn = env_get('MAILER_DSN');
 
-        $mailer = new Mailer(env_get('MAILER_DSN'));
+        // Boîte de test locale (maildev, mailpit…) : rien ne sort de la machine,
+        // une adresse de site locale est donc parfaitement acceptable.
+        $dsnHost  = strtolower((string) parse_url($dsn, PHP_URL_HOST));
+        $testInbox = in_array($dsnHost, ['maildev', 'mailpit', 'mailhog', 'localhost', '127.0.0.1', '::1'], true);
+
+        // Vers un vrai serveur d'envoi, en revanche, un lien inutilisable ne se rattrape pas.
+        $site = site_url($root, !$testInbox, !$testInbox);
+
+        echo "Site : $site\n";
+        echo 'Envoi : ' . dsn_label($dsn)
+            . ($testInbox ? " — boîte de test locale, les invités ne recevront rien.\n\n" : "\n\n");
+
+        $mailer = new Mailer($dsn);
         $sent   = 0;
         $skipped = [];
 
