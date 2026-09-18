@@ -27,6 +27,7 @@ final class Mailer
         }
         $parts = parse_url($dsn);
         if ($parts === false || !isset($parts['host'])) {
+            error_log('[Mailer] MAILER_DSN illisible : encodez les caractères spéciaux (@ → %40, # → %23, $ → %24).');
             return $default;
         }
         $query = [];
@@ -56,10 +57,10 @@ final class Mailer
 
         [$headers, $body] = self::compose($to, $subject, $html, $text, $from, $fromName, $replyTo);
 
+        // Un serveur SMTP est configuré : en cas d'échec on le signale, plutôt que
+        // de basculer en silence sur le sendmail local (réputation et traçabilité).
         if ($this->dsn['scheme'] === 'smtp' || $this->dsn['scheme'] === 'smtps') {
-            if ($this->sendSmtp($to, $headers, $body, $from)) {
-                return true;
-            }
+            return $this->sendSmtp($to, $headers, $body, $from);
         }
 
         return $this->sendNative($to, $headers, $body);
@@ -201,6 +202,13 @@ final class Mailer
                 break;
             }
         }
+        if (trim($response) === '') {
+            throw new RuntimeException(
+                'aucune réponse du serveur — un port chiffré contacté en clair ? '
+                . 'Utilisez smtps:// sur le port 465, ou smtp://…:587?encryption=tls'
+            );
+        }
+
         $code = (int) substr($response, 0, 3);
         if ($code !== $expected) {
             throw new RuntimeException("réponse inattendue « " . trim($response) . " » (attendu $expected)");

@@ -113,7 +113,7 @@ function dsn_label(string $dsn): string
     }
     $parts = parse_url($dsn);
     if ($parts === false || !isset($parts['host'])) {
-        return '(DSN illisible)';
+        return '(DSN illisible — caractères spéciaux à encoder ?)';
     }
     $label = ($parts['scheme'] ?? 'smtp') . '://';
     if (isset($parts['user'])) {
@@ -248,6 +248,15 @@ switch ($command) {
     // -----------------------------------------------------------------------
     case 'envoyer':
         $dsn = env_get('MAILER_DSN');
+
+        // Un DSN mal formé retomberait silencieusement sur mail() : on s'arrête net.
+        if ($dsn !== '' && parse_url($dsn) === false) {
+            fwrite(STDERR, "MAILER_DSN illisible.\n"
+                . "  Les caractères spéciaux doivent être encodés dans l'URL :\n"
+                . "    @ → %40   # → %23   \$ → %24   / → %2F   : → %3A   ? → %3F\n"
+                . "  Exemple : smtps://utilisateur%40domaine.fr:M0t%23De%24Passe@smtp.hebergeur.com:465\n");
+            exit(1);
+        }
 
         // Boîte de test locale (maildev, mailpit…) : rien ne sort de la machine,
         // une adresse de site locale est donc parfaitement acceptable.
